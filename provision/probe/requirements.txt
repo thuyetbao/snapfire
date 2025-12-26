@@ -1,0 +1,5 @@
+fastapi>=0.115.7,<=0.117
+pydantic>=2.11.0,<=2.12
+uvicorn>=0.34.3,<=0.36
+polars[fsspec]>=1.28.1,<=1.32
+aiofiles>=25.1.0,<26

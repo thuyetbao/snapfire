@@ -6,14 +6,14 @@ The headstart to develop project
 
 ## **Prerequisite**
 
-- Terraform version 1.10.5
+- Terraform version `1.10.5`
 
-- Python version 3.9.x
+- Python version `3.12.x`
 
 - Package manager `uv`
 
-- `git`
+- Version control `git`
 
-- `make`
+- Build tool `make`
 
 - GitHub CLI `gh`

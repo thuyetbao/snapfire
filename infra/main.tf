@@ -1,4 +1,6 @@
-#!terraform
+# ---------------------------------------------------------------------------------------------
+# Terraform Configuration ---------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------
 
 terraform {
   required_version = "~> 1.10.5"
@@ -7,13 +9,6 @@ terraform {
       source  = "hashicorp/google"
       version = "6.20.0"
     }
-  }
-
-  # Configuration
-  # https://developer.hashicorp.com/terraform/language/backend/gcs#prefix
-  backend "gcs" {
-    bucket = "dock-infrastructure-safehouse"
-    prefix = "terraform/environment=production"
   }
 }
 
@@ -44,7 +39,7 @@ provider "google-beta" {
 resource "google_project_service" "discovery_mesh" {
   for_each = toset([
     "vpcaccess.googleapis.com",
-    "networksecurity.googleapis.com", # For firewall table
+    "networksecurity.googleapis.com",
     "servicenetworking.googleapis.com",
     "compute.googleapis.com",
     "iam.googleapis.com",
@@ -69,18 +64,4 @@ resource "google_project_service" "discovery_mesh" {
 # See: https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/project
 data "google_project" "snapfire" {
   project_id = var.project_id
-}
-
-# ---------------------------------------------------------------------------------------------
-# Outputs
-# ---------------------------------------------------------------------------------------------
-
-output "latency_app_public_ip" {
-  value       = google_compute_instance.latency_app.network_interface[0].access_config[0].nat_ip
-  description = "Public IP of the latency application VM"
-}
-
-output "latency_target_private_ip" {
-  value       = google_compute_instance.latency_target.network_interface[0].network_ip
-  description = "Private IP of the latency target VM"
 }
