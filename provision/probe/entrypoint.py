@@ -11,6 +11,7 @@ import re
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import polars as pl
+import polars.selectors as pl_sel
 from pydantic import BaseModel, Field, computed_field, field_validator
 
 # Build
@@ -102,7 +103,8 @@ class ResponseLatencyModel(BaseModel):
     path="/metrics",
     summary="Fetch latency metrics",
     description="Fetch latency metrics statistics",
-    response_model=ResponseLatencyModel)
+    response_model=ResponseLatencyModel,
+)
 async def fetchLatencyMetrics(
     query: Annotated[RequestParametersModel, Query()],
 ):
@@ -126,16 +128,17 @@ async def fetchLatencyMetrics(
         pl.col("method"),
         pl.lit(query.window).cast(pl.String).alias("window"),
         pl.count().alias("count"),
-        (pl.col("success").sum() / pl.count()).mul(100).round(2).alias("success_rate"),
-        pl.col("latency_ms").mean().round(2).alias("avg_latency_ms"),
-        pl.col("latency_ms").quantile(0.05).alias("p5_latency_ms"),
-        pl.col("latency_ms").quantile(0.1).alias("p10_latency_ms"),
-        pl.col("latency_ms").quantile(0.25).alias("p25_latency_ms"),
-        pl.col("latency_ms").quantile(0.5).alias("p50_latency_ms"),
-        pl.col("latency_ms").quantile(0.75).alias("p75_latency_ms"),
-        pl.col("latency_ms").quantile(0.95).alias("p95_latency_ms"),
-        pl.col("latency_ms").max().alias("max_latency_ms"),
-    ).collect()
+        (pl.col("success").sum() / pl.count()).mul(100).alias("success_rate"),
+        pl.col("latency_ms").filter(pl.col("success")).mean().alias("avg_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).quantile(0.05).alias("p5_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).quantile(0.1).alias("p10_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).quantile(0.25).alias("p25_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).quantile(0.5).alias("p50_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).quantile(0.75).alias("p75_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).quantile(0.95).alias("p95_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).quantile(0.99).alias("p99_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).max().alias("max_latency_ms"),
+    ).with_columns(pl_sel.numeric().round(2)).collect()
 
     if result.is_empty():
         return {
