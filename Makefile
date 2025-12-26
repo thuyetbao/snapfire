@@ -66,3 +66,7 @@ up-target:
 	cd provision/target && \
 		uvicorn entrypoint:app --reload --host 0.0.0.0 --port 9999 \
 			--workers 1 --no-server-header --no-date-header
+
+up-collector:
+	cd provision/probe && \
+		python collector.py --target 8.8.8.8 --timeout 1 --interval 5 --output data/test.jsonl
