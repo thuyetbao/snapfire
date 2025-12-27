@@ -190,7 +190,7 @@ async def collect(
     await queue.put(record)
 
 
-async def invoke_scheduler_by_protocol(
+async def invoke_scheduler_with_protocol(
     *,
     protocol: str,
     queue: asyncio.Queue,
@@ -368,7 +368,7 @@ async def run_measurements(
     # Build
     tasks = [
         asyncio.create_task(
-            invoke_scheduler_by_protocol(
+            invoke_scheduler_with_protocol(
                 protocol=proto,
                 queue=proto_queues[proto],
                 stop_event=stop_event,
@@ -438,9 +438,13 @@ if __name__ == "__main__":
         >>> python collector.py \
                 --ip 8.8.8.8 \
                 --output data/measurement.jsonl \
-                --set tcp_port=80 \
-                --set udp_port=53 \
-                --set http_port=4200 --set http_path=/health --set http_scheme=http
+                --set "tcp_port=80" \
+                --set "udp_port=53" \
+                --set "http_port=4200" --set "http_path=//health" --set "http_scheme=http"
+
+        Note
+        ----
+        For [http_path] use escape characters for special characters with // and `"`
 
         Help
         >>> python collector.py --help
@@ -473,6 +477,7 @@ if __name__ == "__main__":
     # Configure
     configure_logging(service_name="probe-collector", log_level="INFO")
 
+    # Run
     asyncio.run(
         run_measurements(
             ip=args.ip,
