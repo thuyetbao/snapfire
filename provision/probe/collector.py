@@ -380,9 +380,9 @@ async def run_measurements(
         )
         for proto in protocols
     ]
+    await LOG.ainfo(f"Build {len(tasks)} tasks to invoke schedulers")
 
-    await LOG.ainfo("Build async tasks for protocols")
-
+    # Wait
     await stop_event.wait()      # ← main blocking point
 
     for t in tasks:
@@ -391,13 +391,14 @@ async def run_measurements(
     # Run
     await asyncio.gather(*tasks, return_exceptions=True)
 
+    # Wait
     for q in proto_queues.values():
         await q.join()
 
     # Handle
     task_write_result_to_jsonl.cancel()
     await asyncio.gather(task_write_result_to_jsonl, return_exceptions=True)
-    await LOG.ainfo("Flush write to JSONL")
+    await LOG.ainfo("Flush write to output file")
 
 
 def parse_argument_address(value: str) -> str:
