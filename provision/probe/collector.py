@@ -1,15 +1,16 @@
 #!/bin/python3
 
 # Global
-import signal
 from typing import Callable, Awaitable, TypeVar, Tuple, Optional
 from datetime import datetime, timezone
+import signal
 import json
 import asyncio
 import functools
 import time
 import argparse
 import textwrap
+import ipaddress
 
 # External
 import aioping
@@ -57,13 +58,30 @@ async def run_tcp(host: str, port: int, timeout: float = 1.0) -> None:
 @measure_latency
 async def run_udp(host: str, port: int, timeout: float = 1.0) -> None:
     loop = asyncio.get_running_loop()
+    response_fut = loop.create_future()
+
+    class ClientProtocol(asyncio.DatagramProtocol):
+        def connection_made(self, transport):
+            self.transport = transport
+            self.transport.sendto(b"\x00")
+
+        def datagram_received(self, data, addr):
+            if not response_fut.done():
+                response_fut.set_result(None)
+
+        def error_received(self, exc):
+            if not response_fut.done():
+                response_fut.set_exception(exc)
+
     transport, _ = await loop.create_datagram_endpoint(
-        asyncio.DatagramProtocol,
-        remote_addr=(host, port)
+        ClientProtocol,
+        remote_addr=(host, port),
     )
-    transport.sendto(b"\x00")
-    await asyncio.sleep(timeout)
-    transport.close()
+
+    try:
+        await asyncio.wait_for(response_fut, timeout)
+    finally:
+        transport.close()
 
 
 @measure_latency
@@ -74,7 +92,7 @@ async def run_http(url: str, timeout: float = 1.0) -> None:
             resp.raise_for_status()
 
 
-PROTOCOL_RUNNERS = {
+PROTOCOL_RUNNERS: dict[str, Callable[..., asyncio.Future]] = {
     "icmp": run_icmp,
     "tcp": run_tcp,
     "udp": run_udp,
@@ -82,67 +100,213 @@ PROTOCOL_RUNNERS = {
 }
 
 
-async def collect(protocol: str, target: str, timeout: float, output: str):
-    on_func = PROTOCOL_RUNNERS.get(protocol)
-    host, port = target.rsplit(":", 1)
-    url = f"http://{target}"
-    _ = url
-    if protocol == "icmp":
-        latency, status, err = await on_func(target, timeout)
+PROTOCOL_CONFIG = {
+    "icmp": {
+        "host": "[host]",
+        "interval": 2.0,
+        "timeout": 1.0,
+    },
+    "tcp": {
+        "host": "[host]",
+        "port": None,
+        "interval": 5.0,
+        "timeout": 1.5,
+    },
+    "udp": {
+        "host": "[host]",
+        "port": None,
+        "interval": 15.0,
+        "timeout": 1.0,
+    },
+    "http": {
+        "host": "[host]",
+        "port": None,
+        "path": "/health",
+        "scheme": "http",   # or https
+        "interval": 30.0,
+        "timeout": 3.0,
+    },
+}
 
-    elif protocol in {"tcp", "udp"}:
-        host, port = target.rsplit(":", 1)
-        latency, status, err = await on_func(host, int(port), timeout)
 
-    elif protocol == "http":
-        latency, status, err = await on_func(f"http://{target}", timeout)
+async def collect(
+    protocol: str,
+    target: str,
+    func: Callable[..., asyncio.Future],
+    timeout: float,
+    queue: asyncio.Queue,
+    **kwargs,
+):
+    latency, status, err = await func(target, timeout, **kwargs)
     record = {
         "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "protocol": protocol,
         "target": target,
-        "latency_ms": latency,
-        "status": status
+        "duration_ms": latency,
+        "status": status,
+        "reason": err,
     }
-    async with aiofiles.open(output, "a") as _file:
-        await _file.write(json.dumps(record) + "\n")
+    await queue.put(record)
 
 
-async def scheduler(
-    target: str,
+async def invoke_scheduler_by_protocol(
+    *,
+    protocol: str,
+    ip: str,
+    interval: float,
     timeout: float,
-    output: str,
-    interval: float
+    queue: asyncio.Queue,
+    stop_event: asyncio.Event,
+    **kwargs,
 ):
+    loop = asyncio.get_running_loop()
+    next_tick = loop.time()
+
+    # Search for protocol
+    on_func = PROTOCOL_RUNNERS.get(protocol)
+    on_protocol_config = kwargs or {}
+
+    while not stop_event.is_set():
+        next_tick += interval
+
+        try:
+            await asyncio.wait_for(
+                collect(
+                    func=on_func,
+                    protocol=protocol,
+                    ip=ip,
+                    timeout=timeout,
+                    queue=queue,
+                    **on_protocol_config,
+                ),
+                # Add 0.5 seconds to the timeout to account for the time it takes
+                # to collect the latency measurement and enqueue the record
+                timeout=timeout + 0.5,
+            )
+        except Exception:
+            pass
+
+        await asyncio.sleep(max(0, next_tick - loop.time()))
+
+
+async def batch_writer(
+    *,
+    output: str,
+    protocol_queues: dict[str, asyncio.Queue],
+    batch_size: int,
+    flush_interval: float = 1.0,
+    stop_event: asyncio.Event,
+):
+    buffers: dict[str, list] = {p: [] for p in protocol_queues}
+
+    async with aiofiles.open(output, "a") as f:
+        while not stop_event.is_set() or any(not q.empty() for q in protocol_queues.values()):
+            for proto, queue in protocol_queues.items():
+                try:
+                    item = queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    continue
+
+                buffers[proto].append(item)
+                queue.task_done()
+
+                if len(buffers[proto]) >= batch_size:
+                    await f.write(
+                        "\n".join(json.dumps(r) for r in buffers[proto]) + "\n"
+                    )
+                    buffers[proto].clear()
+
+            await asyncio.sleep(flush_interval)
+
+        # final flush
+        for buf in buffers.values():
+            if buf:
+                await f.write("\n".join(json.dumps(r) for r in buf) + "\n")
+
+
+def install_signal_handlers(event: asyncio.Event):
+
+    def _handler(signum, frame):
+        event.set()
+
+    signal.signal(signal.SIGINT, _handler)
+    signal.signal(signal.SIGTERM, _handler)
+
+
+async def build_schedulers(
+    *,
+    ip: str,
+    output: str,
+    configuration: dict,
+    batch_size: int = 50,
+):
+
+    # The following is a list of all supported protocols
     protocols = ["icmp", "tcp", "udp", "http"]
 
-    STOP_EVENT = asyncio.Event()
-    WRITE_LOCK = asyncio.Lock()
-    _ = WRITE_LOCK
+    # Set
+    stop_event = asyncio.Event()
+    install_signal_handlers(event=stop_event)
 
-    def _handle_signal(signum, frame):
-        loop = asyncio.get_event_loop()
-        loop.call_soon_threadsafe(STOP_EVENT.set)
+    configuration = {
+        "icmp": {"interval": 2.0, "timeout": 1.0},
+        "tcp":  {"interval": 5.0, "timeout": 1.5, "port": 80},
+        "udp":  {"interval": 15.0, "timeout": 1.0, "port": 53},
+        "http": {"interval": 30.0, "timeout": 3.0, "path": "/"},
+    }
+    # host, port = target.rsplit(":", 1)
+    # url = f"http://{target}"
+    # _ = url
 
-    signal.signal(signal.SIGINT, _handle_signal)
-    signal.signal(signal.SIGTERM, _handle_signal)
+    # if protocol == "icmp":
+    #     l
 
-    # loop = asyncio.get_event_loop()
-    # for sig in (signal.SIGINT, signal.SIGTERM):
-    #     loop.add_signal_handler(sig, shutdown)
+    # elif protocol in {"tcp", "udp"}:
+    #     host, port = target.rsplit(":", 1)
+    #     latency, status, err = await on_func(host, int(port), timeout)
 
-    while not STOP_EVENT.is_set():
-        tasks = [
-            asyncio.create_task(
-                asyncio.wait_for(
-                    collect(proto, target, timeout, output),
-                    timeout=timeout + 0.5
-                )
+    # elif protocol == "http":
+    #     latency, status, err = await on_func(f"http://{target}", timeout)
+    protocol_queues = {proto: asyncio.Queue() for proto in configuration}
+
+    tasks = [
+        asyncio.create_task(
+            invoke_scheduler_by_protocol(
+                protocol=proto,
+                ip=ip,
+                output=output,
+                queue=protocol_queues[proto],
+                interval=configuration[proto]["interval"],
+                timeout=configuration[proto]["timeout"],
             )
-            for proto in protocols
-        ]
+        )
+        for proto in protocols
+    ]
 
-        await asyncio.gather(*tasks, return_exceptions=True)
-        await asyncio.sleep(interval)
+    await asyncio.gather(*tasks, return_exceptions=True)
+
+    for q in protocol_queues.values():
+        await q.join()
+
+    await asyncio.create_task(
+        batch_writer(
+            output=output,
+            protocol_queues=protocol_queues,
+            batch_size=batch_size,
+            stop_event=stop_event,
+        )
+    )
+
+
+def validate_ip_address(value: str) -> str:
+
+    # Accept IP or hostname
+    try:
+        ipaddress.ip_address(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid address '{value}'. Expected IP address")
+    else:
+        return value
 
 
 if __name__ == "__main__":
@@ -165,18 +329,11 @@ if __name__ == "__main__":
         epilog="Copyright (c) of thuyetbao"
     )
     parser.add_argument(
-        "--target",
-        dest="target",
-        type=str,
+        "--ip",
+        dest="ip",
+        type=validate_ip_address,
         required=True,
-        help="Target host or URL"
-    )
-    parser.add_argument(
-        "--timeout",
-        dest="timeout",
-        type=float,
-        default=1.0,
-        help="Timeout per protocol (seconds). Default is %(default)s seconds"
+        help="Target IP address"
     )
     parser.add_argument(
         "-o", "--output",
@@ -186,21 +343,18 @@ if __name__ == "__main__":
         help="Output JSONL file path. Default is %(default)s"
     )
     parser.add_argument(
-        "--interval",
-        dest="interval",
-        type=float,
-        default=5.0,
-        help="Collection interval (seconds). Default is %(default)s seconds"
+        "--config",
+        dest="config",
+        type=str,
+        default=float(5.0),
+        help="Timeout per protocol (seconds). Default is %(default)s seconds"
     )
     args = parser.parse_args()
 
     asyncio.run(
-        scheduler(
-            target=args.target,
-            timeout=args.timeout,
+        build_schedulers(
+            ip=args.ip,
             output=args.output,
-            interval=args.interval
+            config=args.config,
         )
     )
-
-    # TODO: add heath on HTTP, add required config for instance

@@ -50,7 +50,7 @@ install-docs:
 
 install: install-dev install-provision install-docs
 
-docs:
+up-docs:
 	@echo "The internal documentation has been served at URL: \"http://127.0.0.1:7777\""
 	@uv run -m mkdocs serve --dev-addr 0.0.0.0:7777 \
 		--watch docs/ --watch mkdocs.yaml \
@@ -62,11 +62,11 @@ up-probe-agent:
 		DATA_MEASUREMENT_DATA_JSONL_PATH=data/measurement.jsonl uvicorn agent:app --reload --host 0.0.0.0 --port 8888 \
 			--workers 1 --no-server-header --no-date-header
 
+up-probe-collector:
+	cd provision/probe && \
+		python collector.py --target 8.8.8.8 --timeout 1 --interval 5 --output data/test.jsonl
+
 up-target-exposer:
 	cd provision/target && \
 		uvicorn exposer:app --reload --host 0.0.0.0 --port 9999 \
 			--workers 1 --no-server-header --no-date-header
-
-up-probe-collector:
-	cd provision/probe && \
-		python collector.py --target 8.8.8.8 --timeout 1 --interval 5 --output data/test.jsonl

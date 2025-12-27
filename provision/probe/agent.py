@@ -115,7 +115,7 @@ class _GroupObservationModel(BaseModel):
 
 class ResponseLatencyModel(BaseModel):
     response_id: str = Field(default_factory=lambda: uuid.uuid4().hex, description="Response ID")
-    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat(), description="Timestamp of returned data")
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"), description="Timestamp of returned data")
     status: str = Field(default=..., description="Status of returned data")
     parameters: dict[str, str] = Field(default_factory=dict, description="Parameters of latency measurement")
     observation: _GroupObservationModel | None = Field(default=None, description="Observation of latency measurement")
@@ -186,7 +186,7 @@ async def fetchLatencyMetrics(
             "timestamp": pl.String,
             "protocol": pl.String,
             "success": pl.Boolean,
-            "latency_ms": pl.Float64,
+            "duration_ms": pl.Float64,
         },
         infer_schema_length=None,
         low_memory=False,
@@ -201,18 +201,18 @@ async def fetchLatencyMetrics(
             .then(None)
             .otherwise((pl.col("success").sum() / pl.count()).mul(100))
             .alias("success_rate"),
-        pl.col("latency_ms").filter(pl.col("success")).quantile(0.01).alias("p1_latency_ms"),
-        pl.col("latency_ms").filter(pl.col("success")).quantile(0.05).alias("p5_latency_ms"),
-        pl.col("latency_ms").filter(pl.col("success")).quantile(0.1).alias("p10_latency_ms"),
-        pl.col("latency_ms").filter(pl.col("success")).quantile(0.25).alias("p25_latency_ms"),
-        pl.col("latency_ms").filter(pl.col("success")).quantile(0.5).alias("p50_latency_ms"),
-        pl.col("latency_ms").filter(pl.col("success")).quantile(0.75).alias("p75_latency_ms"),
-        pl.col("latency_ms").filter(pl.col("success")).quantile(0.95).alias("p95_latency_ms"),
-        pl.col("latency_ms").filter(pl.col("success")).quantile(0.99).alias("p99_latency_ms"),
-        pl.col("latency_ms").filter(pl.col("success")).mean().alias("avg_latency_ms"),
-        pl.col("latency_ms").filter(pl.col("success")).median().alias("med_latency_ms"),
-        pl.col("latency_ms").filter(pl.col("success")).min().alias("min_latency_ms"),
-        pl.col("latency_ms").filter(pl.col("success")).max().alias("max_latency_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).quantile(0.01).alias("p1_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).quantile(0.05).alias("p5_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).quantile(0.1).alias("p10_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).quantile(0.25).alias("p25_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).quantile(0.5).alias("p50_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).quantile(0.75).alias("p75_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).quantile(0.95).alias("p95_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).quantile(0.99).alias("p99_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).mean().alias("avg_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).median().alias("med_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).min().alias("min_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("success")).max().alias("max_duration_ms"),
     ).with_columns(ps.numeric().round(2)).collect()
 
     if result.is_empty():
@@ -233,20 +233,20 @@ async def fetchLatencyMetrics(
             "success_rate": bundle["success_rate"],
         },
         "percentile": {
-            "p1": {"value": bundle["p1_latency_ms"], "unit": "ms"},
-            "p5": {"value": bundle["p5_latency_ms"], "unit": "ms"},
-            "p10": {"value": bundle["p10_latency_ms"], "unit": "ms"},
-            "p25": {"value": bundle["p25_latency_ms"], "unit": "ms"},
-            "p50": {"value": bundle["p50_latency_ms"], "unit": "ms"},
-            "p75": {"value": bundle["p75_latency_ms"], "unit": "ms"},
-            "p95": {"value": bundle["p95_latency_ms"], "unit": "ms"},
-            "p99": {"value": bundle["p99_latency_ms"], "unit": "ms"},
+            "p1": {"value": bundle["p1_duration_ms"], "unit": "ms"},
+            "p5": {"value": bundle["p5_duration_ms"], "unit": "ms"},
+            "p10": {"value": bundle["p10_duration_ms"], "unit": "ms"},
+            "p25": {"value": bundle["p25_duration_ms"], "unit": "ms"},
+            "p50": {"value": bundle["p50_duration_ms"], "unit": "ms"},
+            "p75": {"value": bundle["p75_duration_ms"], "unit": "ms"},
+            "p95": {"value": bundle["p95_duration_ms"], "unit": "ms"},
+            "p99": {"value": bundle["p99_duration_ms"], "unit": "ms"},
         },
         "stats": {
-            "min": {"value": bundle["min_latency_ms"], "unit": "ms"},
-            "max": {"value": bundle["max_latency_ms"], "unit": "ms"},
-            "avg": {"value": bundle["avg_latency_ms"], "unit": "ms"},
-            "med": {"value": bundle["med_latency_ms"], "unit": "ms"}
+            "min": {"value": bundle["min_duration_ms"], "unit": "ms"},
+            "max": {"value": bundle["max_duration_ms"], "unit": "ms"},
+            "avg": {"value": bundle["avg_duration_ms"], "unit": "ms"},
+            "med": {"value": bundle["med_duration_ms"], "unit": "ms"}
         }
     }
 
