@@ -5,3 +5,4 @@ polars[fsspec]>=1.28.1,<=1.32
 aiofiles>=25.1.0,<26
 aioping==0.4.0
 aiohttp>=3.13.2,<3.14
+structlog>=25.1.0,<26

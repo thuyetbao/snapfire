@@ -6,6 +6,9 @@ SHELL := /bin/bash
 
 .PHONY: venv
 
+# The local public IP address (using for development mode only)
+LOCAL_PUBLIC_IP := $(shell curl -s https://api.ipify.org)
+
 # ==============================================================================
 # Project ======================================================================
 # ==============================================================================
@@ -64,7 +67,12 @@ up-probe-agent:
 
 up-probe-collector:
 	cd provision/probe && \
-		python collector.py --target 8.8.8.8 --timeout 1 --interval 5 --output data/test.jsonl
+		python collector.py \
+			--ip ${LOCAL_PUBLIC_IP} \
+			--output data/test.jsonl \
+			--set "tcp_port=80" \
+			--set "udp_port=53" \
+			--set "http_port=4200" --set "http_path=//health" --set "http_scheme=http"
 
 up-target-exposer:
 	cd provision/target && \
