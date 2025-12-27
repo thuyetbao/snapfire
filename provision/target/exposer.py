@@ -32,6 +32,6 @@ app.add_middleware(
 async def getApplicationHealth():
     now = datetime.now(timezone.utc)
     return {
-        "timestamp": now.isoformat(timespec="milliseconds", sep="T", sep_seconds=False, sep_milliseconds="Z"),
+        "timestamp": now.isoformat(timespec="milliseconds", sep="T").replace("+00:00", "Z"),
         "timezone": now.tzname(),
     }

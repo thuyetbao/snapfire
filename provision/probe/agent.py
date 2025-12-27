@@ -117,13 +117,13 @@ class ResponseLatencyModel(BaseModel):
     response_id: str = Field(default_factory=lambda: uuid.uuid4().hex, description="Response ID")
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat(), description="Timestamp of returned data")
     status: str = Field(default=..., description="Status of returned data")
-    parameters: dict = Field(default_factory=dict, description="Parameters of latency measurement")
+    parameters: dict[str, str] = Field(default_factory=dict, description="Parameters of latency measurement")
     observation: _GroupObservationModel | None = Field(default=None, description="Observation of latency measurement")
     percentile: _GroupPercentileModel | None = Field(default=None, description="Percentiles of latency measurement")
     stats: _GroupStatsModel | None = Field(default=None, description="Stats of latency measurement")
 
     model_config = ConfigDict(
-        schema_extra={
+        json_schema_extra={
             "examples": [
                 {
                     "response_id": "9b609b6aa7d44244a216847b37568606",
@@ -161,7 +161,7 @@ class ResponseLatencyModel(BaseModel):
 async def getApplicationHealth():
     now = datetime.now(timezone.utc)
     return {
-        "timestamp": now.isoformat(timespec="milliseconds", sep="T", sep_seconds=False, sep_milliseconds="Z"),
+        "timestamp": now.isoformat(timespec="milliseconds", sep="T").replace("+00:00", "Z"),
         "timezone": now.tzname(),
     }
 
@@ -175,6 +175,7 @@ async def getApplicationHealth():
 async def fetchLatencyMetrics(
     query: Annotated[RequestParametersModel, Query()],
 ):
+
     # Build
     parameters = {"protocol": query.protocol, "window": query.window}
 
@@ -195,10 +196,11 @@ async def fetchLatencyMetrics(
         &
         (pl.col("timestamp").str.to_datetime(time_zone="UTC") >= pl.lit(query.cutoff, pl.Datetime(time_zone="UTC")))
     ).select(
-        pl.col("protocol"),
-        pl.lit(query.window).cast(pl.String).alias("window"),
         pl.count().alias("count"),
-        (pl.col("success").sum() / pl.count()).mul(100).alias("success_rate"),
+        pl.when(pl.count() == 0)
+            .then(None)
+            .otherwise((pl.col("success").sum() / pl.count()).mul(100))
+            .alias("success_rate"),
         pl.col("latency_ms").filter(pl.col("success")).quantile(0.01).alias("p1_latency_ms"),
         pl.col("latency_ms").filter(pl.col("success")).quantile(0.05).alias("p5_latency_ms"),
         pl.col("latency_ms").filter(pl.col("success")).quantile(0.1).alias("p10_latency_ms"),
@@ -214,16 +216,18 @@ async def fetchLatencyMetrics(
     ).with_columns(ps.numeric().round(2)).collect()
 
     if result.is_empty():
-        return parameters | {
+        return {
             "status": "success",
+            "parameters": parameters,
             "observation": {
                 "count": 0,
             }
         }
 
     bundle = result.row(0, named=True)
-    output = parameters | {
+    output = {
         "status": "success",
+        "parameters": parameters,
         "observation": {
             "count": bundle["count"],
             "success_rate": bundle["success_rate"],

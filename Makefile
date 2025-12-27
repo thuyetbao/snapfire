@@ -57,16 +57,16 @@ docs:
 		--watch README.md --watch CHANGELOG.md --watch TODO.md \
 		--dirty;
 
-up-probe:
+up-probe-agent:
 	cd provision/probe && \
-		DATA_MEASUREMENT_DATA_JSONL_PATH=data/measurement.jsonl uvicorn entrypoint:app --reload --host 0.0.0.0 --port 8888 \
+		DATA_MEASUREMENT_DATA_JSONL_PATH=data/measurement.jsonl uvicorn agent:app --reload --host 0.0.0.0 --port 8888 \
 			--workers 1 --no-server-header --no-date-header
 
-up-target:
+up-target-exposer:
 	cd provision/target && \
-		uvicorn entrypoint:app --reload --host 0.0.0.0 --port 9999 \
+		uvicorn exposer:app --reload --host 0.0.0.0 --port 9999 \
 			--workers 1 --no-server-header --no-date-header
 
-up-collector:
+up-probe-collector:
 	cd provision/probe && \
 		python collector.py --target 8.8.8.8 --timeout 1 --interval 5 --output data/test.jsonl
