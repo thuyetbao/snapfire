@@ -6,13 +6,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated, Literal
 import re
+import uuid
 
 # External
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import polars as pl
-import polars.selectors as pl_sel
-from pydantic import BaseModel, Field, computed_field, field_validator
+import polars.selectors as ps
+from pydantic import BaseModel, Field, computed_field, field_validator, ConfigDict
 
 # The data measurement jsonl file
 DATA_MEASUREMENT_DATA_JSONL_PATH = os.environ.get("DATA_MEASUREMENT_DATA_JSONL_PATH", "/mnt/usr/application-probe/measurement.jsonl")
@@ -25,7 +26,7 @@ if not DATA_MEASUREMENT_DATA_JSONL_PATH.exists():
 app = FastAPI(
     title="Application Probe",
     description="The latency application for probe instance",
-    version="0.1.8",
+    version="0.2.14",
     openapi_url="/openapi.json",
     docs_url="/documentation",
     redoc_url=None,
@@ -83,30 +84,77 @@ class RequestParametersModel(BaseModel):
             return timedelta(days=int(ref_value))
 
 
-class ResponseLatencyModel(BaseModel):
-    protocol: str = Field(default=None, description="Protocol of latency measurement")
-    window: str = Field(default=None, description="Window of latency measurement")
+class _MesurementUnitModel(BaseModel):
+    value: float | None = Field(default=None, description="Value of measurement feature")
+    unit: str = Field(default="ms", description="Unit of measurement feature")
+
+
+class _GroupPercentileModel(BaseModel):
+    p1: _MesurementUnitModel | None = Field(default=None, description="1st percentile")
+    p5: _MesurementUnitModel | None = Field(default=None, description="5th percentile")
+    p10: _MesurementUnitModel | None = Field(default=None, description="10th percentile")
+    p25: _MesurementUnitModel | None = Field(default=None, description="25th percentile")
+    p50: _MesurementUnitModel | None = Field(default=None, description="50th percentile")
+    p75: _MesurementUnitModel | None = Field(default=None, description="75th percentile")
+    p90: _MesurementUnitModel | None = Field(default=None, description="90th percentile")
+    p95: _MesurementUnitModel | None = Field(default=None, description="95th percentile")
+    p99: _MesurementUnitModel | None = Field(default=None, description="99th percentile")
+
+
+class _GroupStatsModel(BaseModel):
+    min: _MesurementUnitModel | None = Field(default=None, description="Minimum latency")
+    max: _MesurementUnitModel | None = Field(default=None, description="Maximum latency")
+    avg: _MesurementUnitModel | None = Field(default=None, description="Average latency")
+    med: _MesurementUnitModel | None = Field(default=None, description="Median latency")
+
+
+class _GroupObservationModel(BaseModel):
     count: int = Field(default=None, description="Count of records")
     success_rate: float | None = Field(default=None, description="Success rate of latency measurement")
-    p1_lantency_ms: float | None = Field(default=None, description="1st percentile latency in ms")
-    p10_latency_ms: float | None = Field(default=None, description="10th percentile latency in ms")
-    p25_latency_ms: float | None = Field(default=None, description="25th percentile latency in ms")
-    p50_latency_ms: float | None = Field(default=None, description="50th percentile latency in ms")
-    p75_latency_ms: float | None = Field(default=None, description="75th percentile latency in ms")
-    p95_latency_ms: float | None = Field(default=None, description="95th percentile latency in ms")
-    p99_latency_ms: float | None = Field(default=None, description="99th percentile latency in ms")
-    max_latency_ms: float | None = Field(default=None, description="Maximum latency in ms")
-    avg_latency_ms: float | None = Field(default=None, description="Average latency in ms")
-    # {
-    #   "percentiles": {
-    #     "p50": { "value": 10.2, "unit": "ms" },
-    #     "p99": { "value": 88.4, "unit": "ms" }
-    #   },
-    #   "stats": {
-    #     "avg": { "value": 14.1, "unit": "ms" },
-    #     "max": { "value": 140.0, "unit": "ms" }
-    #   }
-    # }
+
+
+class ResponseLatencyModel(BaseModel):
+    response_id: str = Field(default_factory=lambda: uuid.uuid4().hex, description="Response ID")
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat(), description="Timestamp of returned data")
+    status: str = Field(default=..., description="Status of returned data")
+    parameters: dict = Field(default_factory=dict, description="Parameters of latency measurement")
+    observation: _GroupObservationModel | None = Field(default=None, description="Observation of latency measurement")
+    percentile: _GroupPercentileModel | None = Field(default=None, description="Percentiles of latency measurement")
+    stats: _GroupStatsModel | None = Field(default=None, description="Stats of latency measurement")
+
+    model_config = ConfigDict(
+        schema_extra={
+            "examples": [
+                {
+                    "response_id": "9b609b6aa7d44244a216847b37568606",
+                    "timestamp": "2022-07-26T12:34:56.321Z",
+                    "status": "success",
+                    "parameters": {
+                        "protocol": "icmp",
+                        "window": "5m"
+                    },
+                    "observation": {
+                        "count": 10,
+                        "success_rate": 0.8
+                    },
+                    "percentile": {
+                        "p25": {"value": 8.3, "unit": "ms"},
+                        "p50": {"value": 10.2, "unit": "ms"},
+                        "p75": {"value": 12.1, "unit": "ms"},
+                        "p90": {"value": 14.5, "unit": "ms"},
+                        "p95": {"value": 17.8, "unit": "ms"},
+                        "p99": {"value": 88.4, "unit": "ms"}
+                    },
+                    "stats": {
+                        "min": {"value": 5.8, "unit": "ms"},
+                        "max": {"value": 140.0, "unit": "ms"},
+                        "avg": {"value": 14.1, "unit": "ms"},
+                        "med": {"value": 12.1, "unit": "ms"}
+                    }
+                }
+            ]
+        }
+    )
 
 
 @app.get("/health")
@@ -127,6 +175,8 @@ async def getApplicationHealth():
 async def fetchLatencyMetrics(
     query: Annotated[RequestParametersModel, Query()],
 ):
+    # Build
+    parameters = {"protocol": query.protocol, "window": query.window}
 
     # Search
     result = pl.scan_ndjson(
@@ -149,7 +199,7 @@ async def fetchLatencyMetrics(
         pl.lit(query.window).cast(pl.String).alias("window"),
         pl.count().alias("count"),
         (pl.col("success").sum() / pl.count()).mul(100).alias("success_rate"),
-        pl.col("latency_ms").filter(pl.col("success")).mean().alias("avg_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).quantile(0.01).alias("p1_latency_ms"),
         pl.col("latency_ms").filter(pl.col("success")).quantile(0.05).alias("p5_latency_ms"),
         pl.col("latency_ms").filter(pl.col("success")).quantile(0.1).alias("p10_latency_ms"),
         pl.col("latency_ms").filter(pl.col("success")).quantile(0.25).alias("p25_latency_ms"),
@@ -157,14 +207,43 @@ async def fetchLatencyMetrics(
         pl.col("latency_ms").filter(pl.col("success")).quantile(0.75).alias("p75_latency_ms"),
         pl.col("latency_ms").filter(pl.col("success")).quantile(0.95).alias("p95_latency_ms"),
         pl.col("latency_ms").filter(pl.col("success")).quantile(0.99).alias("p99_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).mean().alias("avg_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).median().alias("med_latency_ms"),
+        pl.col("latency_ms").filter(pl.col("success")).min().alias("min_latency_ms"),
         pl.col("latency_ms").filter(pl.col("success")).max().alias("max_latency_ms"),
-    ).with_columns(pl_sel.numeric().round(2)).collect()
+    ).with_columns(ps.numeric().round(2)).collect()
 
     if result.is_empty():
-        return {
-            "protocol": query.protocol,
-            "window": query.window,
-            "count": 0,
+        return parameters | {
+            "status": "success",
+            "observation": {
+                "count": 0,
+            }
         }
 
-    return result.row(0, named=True)
+    bundle = result.row(0, named=True)
+    output = parameters | {
+        "status": "success",
+        "observation": {
+            "count": bundle["count"],
+            "success_rate": bundle["success_rate"],
+        },
+        "percentile": {
+            "p1": {"value": bundle["p1_latency_ms"], "unit": "ms"},
+            "p5": {"value": bundle["p5_latency_ms"], "unit": "ms"},
+            "p10": {"value": bundle["p10_latency_ms"], "unit": "ms"},
+            "p25": {"value": bundle["p25_latency_ms"], "unit": "ms"},
+            "p50": {"value": bundle["p50_latency_ms"], "unit": "ms"},
+            "p75": {"value": bundle["p75_latency_ms"], "unit": "ms"},
+            "p95": {"value": bundle["p95_latency_ms"], "unit": "ms"},
+            "p99": {"value": bundle["p99_latency_ms"], "unit": "ms"},
+        },
+        "stats": {
+            "min": {"value": bundle["min_latency_ms"], "unit": "ms"},
+            "max": {"value": bundle["max_latency_ms"], "unit": "ms"},
+            "avg": {"value": bundle["avg_latency_ms"], "unit": "ms"},
+            "med": {"value": bundle["med_latency_ms"], "unit": "ms"}
+        }
+    }
+
+    return output

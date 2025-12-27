@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(
     title="Application Target",
     description="The HTTP application for target instance",
-    version="0.1.1",
+    version="0.1.2",
     openapi_url="/openapi.json",
     docs_url="/documentation",
     redoc_url=None,
@@ -29,7 +29,7 @@ app.add_middleware(
 
 
 @app.get("/_/health")
-async def getHealth():
+async def getApplicationHealth():
     now = datetime.now(timezone.utc)
     return {
         "timestamp": now.isoformat(timespec="milliseconds", sep="T", sep_seconds=False, sep_milliseconds="Z"),
