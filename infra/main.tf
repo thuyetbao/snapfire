@@ -34,15 +34,19 @@ provider "google-beta" {
   }
 }
 
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
 # Search by: `gcloud services list --available | grep .googleapis.com`
 # Validate by: `gcloud services list --enabled`
 resource "google_project_service" "discovery_mesh" {
   for_each = toset([
-    "vpcaccess.googleapis.com",
-    "networksecurity.googleapis.com",
-    "servicenetworking.googleapis.com",
-    "compute.googleapis.com",
-    "iam.googleapis.com",
+    "vpcaccess.googleapis.com",         # Required for Serverless VPC access
+    "networksecurity.googleapis.com",   # Required for firewall/security policies
+    "servicenetworking.googleapis.com", # Required for managed services networking
+    "compute.googleapis.com",           # Required for Compute Engine VMs
+    "iam.googleapis.com",               # Required for IAM roles and service accounts
   ])
   project = var.project_id
   service = each.key
@@ -58,10 +62,4 @@ resource "google_project_service" "discovery_mesh" {
   # destroy the project, but we need the APIs available to destroy the
   # underlying resources.
   disable_on_destroy = false
-}
-
-# The numeric identifier of the project
-# See: https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/project
-data "google_project" "snapfire" {
-  project_id = var.project_id
 }

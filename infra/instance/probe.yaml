@@ -1,0 +1,48 @@
+#cloud-config
+
+users:
+- name: storm
+  uid: 940411
+
+package_update: true
+package_upgrade: true
+packages:
+  - python3.12
+  - python3.12-venv
+  - curl
+  - git
+  - build-essential
+
+write_files:
+  - path: /opt/probe/requirements.txt
+    permissions: 0755
+    owner: storm
+    content: |
+      ${c_requirement_txt}
+
+  - path: /opt/probe/agent.py
+    owner: storm
+    permissions: 0755
+    content: |
+      ${c_application_agent}
+
+  - path: /opt/probe/collector.py
+    permissions: 0755
+    owner: storm
+    content: |
+      ${c_application_collector}
+
+runcmd:
+  - curl -LsSf https://astral.sh/uv/install.sh | sh
+  - export PATH="/root/.cargo/bin:$PATH"
+  - mkdir -p /mnt/usr/application-probe
+  - chown -R 940411:940411 /mnt/usr/application-probe
+  - chmod 750 /mnt/usr/application-probe
+  - python3 -m venv /opt/probe/venv
+  - /opt/probe/venv/bin/python -m pip install --upgrade pip
+  - cd /opt/probe
+  - uv pip install -r requirements.txt
+  - nohup python collector.py --ip ${DESTINATION_IP} --output data/test.jsonl --set "tcp_port=80" --set "udp_port=53" --set "http_port=9999" --set "http_path=//_//health" --set "http_scheme=http" &
+  - nohup DATA_MEASUREMENT_DATA_JSONL_PATH=data/measurement.jsonl /opt/probe/venv/bin/uvicorn agent:app --host 0.0.0.0 --port 8888 --workers 1 --no-server-header --no-date-header &
+
+final_message: "Probe has been provision. The application included agent (port:8888) and collector in the background"
