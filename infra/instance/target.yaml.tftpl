@@ -1,0 +1,48 @@
+#cloud-config
+
+users:
+  - name: aurion
+    uid: 940411
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+
+package_update: true
+package_upgrade: true
+packages:
+  - python3
+  - python3-venv
+  - curl
+  - git
+  - build-essential
+
+write_files:
+  - path: /opt/target/requirements.txt
+    permissions: "0644"
+    content: |
+      ${indent(6, c_requirement_txt)}
+
+  - path: /opt/target/exposer.py
+    permissions: "0644"
+    content: |
+      ${indent(6, c_application_exposer)}
+
+runcmd:
+  - curl -LsSf https://astral.sh/uv/install.sh | sh
+  - install -m 0755 /root/.local/bin/uv /usr/local/bin/uv
+  - install -m 0755 /root/.local/bin/uvx /usr/local/bin/uvx
+  - mkdir -p /opt/target
+  - chown -R aurion:aurion /opt/target
+  - python3 -m venv /opt/target/venv
+  - source /opt/target/venv/bin/activate
+  - uv pip install "pip>=24.3.1,<=25.0.10" "setuptools>=75.8.0,<78.0.0" "wheel>=0.45.1,<0.50.0" "hatch>=1.12.1,<1.15.0"
+  - uv pip install -r requirements.txt
+  - |
+    nohup /opt/target/venv/bin/uvicorn agent:app --host 0.0.0.0 --port 9999 \
+      --workers 1 --no-server-header --no-date-header \
+      > /var/log/exposer.log 2>&1 &
+
+final_message: |
+  Target has been provision:
+    [+] The application in the background included:
+      - Exposer (port:9999)

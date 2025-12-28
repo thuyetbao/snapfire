@@ -19,8 +19,8 @@ from pydantic import BaseModel, Field, computed_field, field_validator, ConfigDi
 DATA_MEASUREMENT_DATA_JSONL_PATH = os.environ.get("DATA_MEASUREMENT_DATA_JSONL_PATH", "/mnt/usr/application-probe/measurement.jsonl")
 DATA_MEASUREMENT_DATA_JSONL_PATH = Path(DATA_MEASUREMENT_DATA_JSONL_PATH)
 
-if not DATA_MEASUREMENT_DATA_JSONL_PATH.exists():
-    raise FileNotFoundError(DATA_MEASUREMENT_DATA_JSONL_PATH)
+# if not DATA_MEASUREMENT_DATA_JSONL_PATH.exists():
+#     raise FileNotFoundError(DATA_MEASUREMENT_DATA_JSONL_PATH)
 
 # Build
 app = FastAPI(
@@ -178,6 +178,10 @@ async def fetchLatencyMetrics(
 
     # Build
     parameters = {"protocol": query.protocol, "window": query.window}
+
+    # [TODO] Raise if not exist the file
+    # if not DATA_MEASUREMENT_DATA_JSONL_PATH.exists():
+    #     raise FileNotFoundError(DATA_MEASUREMENT_DATA_JSONL_PATH)
 
     # Search
     result = pl.scan_ndjson(

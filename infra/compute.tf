@@ -6,16 +6,16 @@
 # CE: Probe -----------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------
 
-resource "google_compute_instance" "alien_probe" {
+resource "google_compute_instance" "probe" {
   project      = var.project_id
   zone         = "${var.project_region}-a"
-  name         = "alien-probe"
-  description  = "The latency application probe instance"
+  name         = "ce-probe"
+  description  = "The Probe instance"
   machine_type = "e2-micro"
 
   boot_disk {
     initialize_params {
-      image = "projects/cos-cloud/global/images/family/cos-stable"
+      image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64"
     }
   }
 
@@ -26,11 +26,11 @@ resource "google_compute_instance" "alien_probe" {
   }
 
   metadata = {
-    user-data = templatefile("./instance/probe.yaml", {
+    user-data = templatefile("./instance/probe.yaml.tftpl", {
       c_requirement_txt       = file("../provision/probe/requirements.txt")
       c_application_agent     = file("../provision/probe/agent.py")
       c_application_collector = file("../provision/probe/collector.py")
-      DESTINATION_IP          = google_compute_instance.alien_target.network_interface[0].network_ip
+      DESTINATION_IP          = google_compute_instance.target.network_interface[0].network_ip
     })
   }
 
@@ -41,23 +41,25 @@ resource "google_compute_instance" "alien_probe" {
 
   tags = ["probe"]
 
-  depends_on = [google_compute_instance.alien_target]
+  depends_on = [
+    google_compute_instance.target
+  ]
 }
 
 # ---------------------------------------------------------------------------------------------
 # CE: Target ----------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------
 
-resource "google_compute_instance" "alien_target" {
+resource "google_compute_instance" "target" {
   project      = var.project_id
   zone         = "${var.project_region}-a"
-  name         = "alien-target"
-  description  = "The latency application target instance"
+  name         = "ce-target"
+  description  = "The Target instance"
   machine_type = "e2-micro"
 
   boot_disk {
     initialize_params {
-      image = "projects/cos-cloud/global/images/family/cos-stable"
+      image = "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64"
     }
   }
 
@@ -68,7 +70,7 @@ resource "google_compute_instance" "alien_target" {
   }
 
   metadata = {
-    user-data = templatefile("./instance/target.yaml", {
+    user-data = templatefile("./instance/target.yaml.tftpl", {
       c_requirement_txt     = file("../provision/target/requirements.txt")
       c_application_exposer = file("../provision/target/exposer.py")
     })

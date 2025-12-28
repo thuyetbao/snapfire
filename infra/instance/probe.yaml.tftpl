@@ -1,0 +1,65 @@
+#cloud-config
+
+users:
+  - name: storm
+    uid: 940411
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+
+package_update: true
+package_upgrade: true
+packages:
+  - python3
+  - python3-venv
+  - curl
+  - git
+  - build-essential
+
+write_files:
+  - path: /opt/probe/requirements.txt
+    permissions: "0644"
+    content: |
+      ${indent(6, c_requirement_txt)}
+
+  - path: /opt/probe/agent.py
+    permissions: "0644"
+    content: |
+      ${indent(6, c_application_agent)}
+
+  - path: /opt/probe/collector.py
+    permissions: "0644"
+    content: |
+      ${indent(6, c_application_collector)}
+
+runcmd:
+  - curl -LsSf https://astral.sh/uv/install.sh | sh
+  - install -m 0755 /root/.local/bin/uv /usr/local/bin/uv
+  - install -m 0755 /root/.local/bin/uvx /usr/local/bin/uvx
+  - mkdir -p /opt/probe /mnt/usr/probe
+  - chown -R storm:storm /mnt/usr/probe
+  - chmod 750 /mnt/usr/probe
+  - python3 -m venv /opt/probe/venv
+  - source /opt/probe/venv/bin/activate
+  - uv pip install "pip>=24.3.1,<=25.0.10" "setuptools>=75.8.0,<78.0.0" "wheel>=0.45.1,<0.50.0" "hatch>=1.12.1,<1.15.0"
+  - uv pip install -r requirements.txt
+  - |
+    nohup python3 collector.py \
+      --ip ${DESTINATION_IP} \
+      --output /mnt/usr/probe/measurement.jsonl \
+      --set "tcp_port=80" \
+      --set "udp_port=53" \
+      --set "http_port=9999" --set "http_path=//_//health" --set "http_scheme=http" \
+      > /var/log/collector.log 2>&1 &
+
+  - |
+    nohup DATA_MEASUREMENT_DATA_JSONL_PATH=/mnt/usr/probe/measurement.jsonl \
+      /opt/probe/venv/bin/uvicorn agent:app --host 0.0.0.0 --port 8888 \
+      --workers 1 --no-server-header --no-date-header \
+      > /var/log/agent.log 2>&1 &
+
+final_message: |
+  Probe has been provision:
+    [+] The application in the background included:
+      - Agent (port:8888)
+      - Collector
