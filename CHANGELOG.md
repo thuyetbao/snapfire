@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## **2025-12-26**
+## **2025-12-29**
 
 Bump project version into `0.5.1`
 
