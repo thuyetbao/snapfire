@@ -5,7 +5,7 @@ users:
     uid: 940411
     groups: [sudo]
     shell: /bin/bash
-    sudo: ALL=(ALL) NOPASSWD:ALL
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
 
 package_update: true
 package_upgrade: true
@@ -17,6 +17,22 @@ packages:
   - build-essential
 
 write_files:
+  - path: /opt/target/udp_echo.py
+    permissions: "0755"
+    content: |
+      import socket
+
+      HOST = "0.0.0.0"
+      PORT = 5353
+
+      sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+      sock.bind((HOST, PORT))
+      print(f"UDP echo listening on {PORT}")
+
+      while True:
+          data, addr = sock.recvfrom(2048)
+          sock.sendto(data, addr)
+
   - path: /opt/target/requirements.txt
     permissions: "0644"
     content: |
@@ -27,20 +43,65 @@ write_files:
     content: |
       ${indent(6, c_application_exposer)}
 
+  - path: /etc/systemd/system/target-udp-echo.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=UDP Echo Service
+      After=network-online.target
+      Wants=network-online.target
+      StartLimitBurst=10
+      StartLimitIntervalSec=60
+
+      [Service]
+      Type=simple
+      User=aurion
+      WorkingDirectory=/opt/target
+      Environment="PATH=/opt/target/venv/bin:/usr/local/bin:/usr/bin"
+      ExecStart=/opt/target/venv/bin/python /opt/target/udp_echo.py
+      Restart=always
+      RestartSec=5
+      AmbientCapabilities=CAP_NET_BIND_SERVICE
+      CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/systemd/system/target-exposer.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Target Exposer
+      After=network-online.target
+      Wants=network-online.target
+      StartLimitBurst=10
+      StartLimitIntervalSec=60
+
+      [Service]
+      Type=simple
+      User=aurion
+      WorkingDirectory=/opt/target
+      Environment="PATH=/opt/target/venv/bin:/usr/local/bin:/usr/bin"
+      ExecStart=/opt/target/venv/bin/uvicorn exposer:app --host 0.0.0.0 --port 9999 --workers 1 --no-server-header --no-date-header
+      Restart=always
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+
 runcmd:
+  - export UV_INSTALL_DIR=/usr/local/bin
   - curl -LsSf https://astral.sh/uv/install.sh | sh
-  - install -m 0755 /root/.local/bin/uv /usr/local/bin/uv
-  - install -m 0755 /root/.local/bin/uvx /usr/local/bin/uvx
   - mkdir -p /opt/target
   - chown -R aurion:aurion /opt/target
   - python3 -m venv /opt/target/venv
-  - source /opt/target/venv/bin/activate
-  - uv pip install "pip>=24.3.1,<=25.0.10" "setuptools>=75.8.0,<78.0.0" "wheel>=0.45.1,<0.50.0" "hatch>=1.12.1,<1.15.0"
-  - uv pip install -r requirements.txt
-  - |
-    nohup /opt/target/venv/bin/uvicorn agent:app --host 0.0.0.0 --port 9999 \
-      --workers 1 --no-server-header --no-date-header \
-      > /var/log/exposer.log 2>&1 &
+  - /usr/local/bin/uv pip install --python /opt/target/venv/bin/python "pip>=24.3.1,<=25.0.10" "setuptools>=75.8.0,<78.0.0" "wheel>=0.45.1,<0.50.0" "hatch>=1.12.1,<1.15.0"
+  - /usr/local/bin/uv pip install --python /opt/target/venv/bin/python -r /opt/target/requirements.txt
+  - systemctl daemon-reload
+  - systemctl enable target-udp-echo
+  - systemctl start target-udp-echo
+  - systemctl enable target-exposer
+  - systemctl start target-exposer
 
 final_message: |
   Target has been provision:

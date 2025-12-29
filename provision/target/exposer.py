@@ -4,14 +4,14 @@
 from datetime import datetime, timezone
 
 # External
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 
 # Build
 app = FastAPI(
-    title="Application Target",
-    description="The HTTP application for target instance",
-    version="0.1.2",
+    title="Target",
+    description="The HTTP application of Target member",
+    version="0.3.9",
     openapi_url="/openapi.json",
     docs_url="/documentation",
     redoc_url=None,
@@ -28,7 +28,13 @@ app.add_middleware(
 )
 
 
-@app.get("/_/health")
+@app.get(
+    path="/_/health",
+    tags=["Application"],
+    summary="Get the application health",
+    description="Get the application health",
+    status_code=status.HTTP_200_OK,
+)
 async def getApplicationHealth():
     now = datetime.now(timezone.utc)
     return {

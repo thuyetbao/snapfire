@@ -5,7 +5,7 @@ users:
     uid: 940411
     groups: [sudo]
     shell: /bin/bash
-    sudo: ALL=(ALL) NOPASSWD:ALL
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
 
 package_update: true
 package_upgrade: true
@@ -32,31 +32,68 @@ write_files:
     content: |
       ${indent(6, c_application_collector)}
 
+  - path: /etc/systemd/system/probe-collector.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Probe Collector
+      After=network-online.target
+      Wants=network-online.target
+      StartLimitBurst=10
+      StartLimitIntervalSec=60
+
+      [Service]
+      Type=simple
+      User=storm
+      AmbientCapabilities=CAP_NET_RAW
+      CapabilityBoundingSet=CAP_NET_RAW
+      WorkingDirectory=/opt/probe
+      Environment="PATH=/opt/probe/venv/bin:/usr/local/bin:/usr/bin"
+      Environment="DESTINATION_IP=${DESTINATION_IP}"
+      ExecStart=/opt/probe/venv/bin/python collector.py --ip ${DESTINATION_IP} --output /mnt/usr/probe/measurement.jsonl --set "tcp_port=22" --set "udp_port=5353" --set "http_port=9999" --set "http_path=/_/health" --set "http_scheme=http"
+      Restart=always
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/systemd/system/probe-agent.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Probe Agent
+      After=network-online.target
+      Wants=network-online.target
+      StartLimitBurst=10
+      StartLimitIntervalSec=60
+
+      [Service]
+      Type=simple
+      User=storm
+      WorkingDirectory=/opt/probe
+      Environment="PATH=/opt/probe/venv/bin:/usr/local/bin:/usr/bin"
+      Environment="DATA_MEASUREMENT_DATA_JSONL_PATH=/mnt/usr/probe/measurement.jsonl"
+      ExecStart=/opt/probe/venv/bin/uvicorn agent:app --host 0.0.0.0 --port 8888 --workers 1 --no-server-header --no-date-header
+      Restart=always
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+
 runcmd:
+  - export UV_INSTALL_DIR=/usr/local/bin
   - curl -LsSf https://astral.sh/uv/install.sh | sh
-  - install -m 0755 /root/.local/bin/uv /usr/local/bin/uv
-  - install -m 0755 /root/.local/bin/uvx /usr/local/bin/uvx
   - mkdir -p /opt/probe /mnt/usr/probe
   - chown -R storm:storm /mnt/usr/probe
   - chmod 750 /mnt/usr/probe
   - python3 -m venv /opt/probe/venv
-  - source /opt/probe/venv/bin/activate
-  - uv pip install "pip>=24.3.1,<=25.0.10" "setuptools>=75.8.0,<78.0.0" "wheel>=0.45.1,<0.50.0" "hatch>=1.12.1,<1.15.0"
-  - uv pip install -r requirements.txt
-  - |
-    nohup python3 collector.py \
-      --ip ${DESTINATION_IP} \
-      --output /mnt/usr/probe/measurement.jsonl \
-      --set "tcp_port=80" \
-      --set "udp_port=53" \
-      --set "http_port=9999" --set "http_path=//_//health" --set "http_scheme=http" \
-      > /var/log/collector.log 2>&1 &
-
-  - |
-    nohup DATA_MEASUREMENT_DATA_JSONL_PATH=/mnt/usr/probe/measurement.jsonl \
-      /opt/probe/venv/bin/uvicorn agent:app --host 0.0.0.0 --port 8888 \
-      --workers 1 --no-server-header --no-date-header \
-      > /var/log/agent.log 2>&1 &
+  - /usr/local/bin/uv pip install --python /opt/probe/venv/bin/python "pip>=24.3.1,<=25.0.10" "setuptools>=75.8.0,<78.0.0" "wheel>=0.45.1,<0.50.0" "hatch>=1.12.1,<1.15.0"
+  - /usr/local/bin/uv pip install --python /opt/probe/venv/bin/python -r /opt/probe/requirements.txt
+  - systemctl daemon-reload
+  - systemctl enable probe-collector
+  - systemctl start probe-collector
+  - systemctl enable probe-agent
+  - systemctl start probe-agent
 
 final_message: |
   Probe has been provision:

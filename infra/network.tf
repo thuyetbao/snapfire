@@ -21,11 +21,24 @@ resource "google_compute_subnetwork" "measurement" {
   ]
 }
 
-resource "google_compute_firewall" "internet_to_probe_http" {
-  name      = "allow-internet-to-probe-8888"
+resource "google_compute_firewall" "allow_ssh_from_internet" {
+  name      = "fw-allow-ssh-from-internet"
   direction = "INGRESS"
   network   = google_compute_network.measurement.name
 
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["allow-ssh"]
+}
+
+resource "google_compute_firewall" "focus_probe" {
+  name      = "fw-focus-probe"
+  direction = "INGRESS"
+  network   = google_compute_network.measurement.name
 
   allow {
     protocol = "tcp"
@@ -36,11 +49,10 @@ resource "google_compute_firewall" "internet_to_probe_http" {
   target_tags   = ["probe"]
 }
 
-resource "google_compute_firewall" "probe_to_target_latency" {
-  name      = "allow-probe-to-target-latency"
+resource "google_compute_firewall" "focus_target" {
+  name      = "fw-focus-target"
   direction = "INGRESS"
   network   = google_compute_network.measurement.name
-
 
   allow {
     protocol = "icmp"
@@ -53,7 +65,7 @@ resource "google_compute_firewall" "probe_to_target_latency" {
 
   allow {
     protocol = "udp"
-    ports    = ["53"]
+    ports    = ["5353"]
   }
 
   source_tags = ["probe"]

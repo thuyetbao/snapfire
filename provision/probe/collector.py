@@ -334,9 +334,9 @@ async def run_measurements(
         elif proto == "http":
             at_url = ip
             if "port" in p_config:
-                at_url = ip + ":" + p_config["port"]
+                at_url = ip + ":" + str(p_config["port"])
             if "path" in p_config:
-                at_url = at_url + "/" + p_config["path"]
+                at_url = at_url + "/" + str(p_config["path"]).removeprefix("/")
             if "scheme" in p_config:
                 at_url = p_config["scheme"] + "://" + at_url
             proto_configurations[proto]["url"] = at_url

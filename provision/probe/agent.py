@@ -9,7 +9,7 @@ import re
 import uuid
 
 # External
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, status, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import polars as pl
 import polars.selectors as ps
@@ -17,16 +17,12 @@ from pydantic import BaseModel, Field, computed_field, field_validator, ConfigDi
 
 # The data measurement jsonl file
 DATA_MEASUREMENT_DATA_JSONL_PATH = os.environ.get("DATA_MEASUREMENT_DATA_JSONL_PATH", "/mnt/usr/application-probe/measurement.jsonl")
-DATA_MEASUREMENT_DATA_JSONL_PATH = Path(DATA_MEASUREMENT_DATA_JSONL_PATH)
-
-# if not DATA_MEASUREMENT_DATA_JSONL_PATH.exists():
-#     raise FileNotFoundError(DATA_MEASUREMENT_DATA_JSONL_PATH)
 
 # Build
 app = FastAPI(
-    title="Application Probe",
-    description="The latency application for probe instance",
-    version="0.2.14",
+    title="Probe",
+    description="The agent of Probe member",
+    version="0.4.12",
     openapi_url="/openapi.json",
     docs_url="/documentation",
     redoc_url=None,
@@ -157,7 +153,13 @@ class ResponseLatencyModel(BaseModel):
     )
 
 
-@app.get("/health")
+@app.get(
+    path="/health",
+    tags=["Application"],
+    summary="Get the application health",
+    description="Get the application health",
+    status_code=status.HTTP_200_OK,
+)
 async def getApplicationHealth():
     now = datetime.now(timezone.utc)
     return {
@@ -168,8 +170,10 @@ async def getApplicationHealth():
 
 @app.get(
     path="/metrics",
+    tags=["Mesurement"],
     summary="Fetch latency metrics",
     description="Fetch latency metrics statistics",
+    status_code=status.HTTP_200_OK,
     response_model=ResponseLatencyModel,
 )
 async def fetchLatencyMetrics(
@@ -179,17 +183,29 @@ async def fetchLatencyMetrics(
     # Build
     parameters = {"protocol": query.protocol, "window": query.window}
 
-    # [TODO] Raise if not exist the file
-    # if not DATA_MEASUREMENT_DATA_JSONL_PATH.exists():
-    #     raise FileNotFoundError(DATA_MEASUREMENT_DATA_JSONL_PATH)
+    # Handle
+    if not Path(DATA_MEASUREMENT_DATA_JSONL_PATH).exists():
+        return HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "response_id": uuid.uuid4().hex,
+                "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "status": "error",
+                "detail": "Resource related to latency measurement not found",
+                "parameters": parameters,
+                "observation": None,
+                "percentile": None,
+                "stats": None
+            }
+        )
 
     # Search
     result = pl.scan_ndjson(
-        source=DATA_MEASUREMENT_DATA_JSONL_PATH,
+        source=Path(DATA_MEASUREMENT_DATA_JSONL_PATH),
         schema={
             "timestamp": pl.String,
             "protocol": pl.String,
-            "success": pl.Boolean,
+            "status": pl.String,
             "duration_ms": pl.Float64,
         },
         infer_schema_length=None,
@@ -199,24 +215,27 @@ async def fetchLatencyMetrics(
         (pl.col("protocol") == query.protocol)
         &
         (pl.col("timestamp").str.to_datetime(time_zone="UTC") >= pl.lit(query.cutoff, pl.Datetime(time_zone="UTC")))
+    ).with_columns(
+        pl.col("status").replace({"success": True, "error": False}, default=None).alias("is_success"),
+        pl.col("status").replace({"success": False, "error": True}, default=None).alias("is_error"),
     ).select(
         pl.count().alias("count"),
         pl.when(pl.count() == 0)
             .then(None)
-            .otherwise((pl.col("success").sum() / pl.count()).mul(100))
+            .otherwise((pl.col("is_success").sum() / pl.count()).mul(100))
             .alias("success_rate"),
-        pl.col("duration_ms").filter(pl.col("success")).quantile(0.01).alias("p1_duration_ms"),
-        pl.col("duration_ms").filter(pl.col("success")).quantile(0.05).alias("p5_duration_ms"),
-        pl.col("duration_ms").filter(pl.col("success")).quantile(0.1).alias("p10_duration_ms"),
-        pl.col("duration_ms").filter(pl.col("success")).quantile(0.25).alias("p25_duration_ms"),
-        pl.col("duration_ms").filter(pl.col("success")).quantile(0.5).alias("p50_duration_ms"),
-        pl.col("duration_ms").filter(pl.col("success")).quantile(0.75).alias("p75_duration_ms"),
-        pl.col("duration_ms").filter(pl.col("success")).quantile(0.95).alias("p95_duration_ms"),
-        pl.col("duration_ms").filter(pl.col("success")).quantile(0.99).alias("p99_duration_ms"),
-        pl.col("duration_ms").filter(pl.col("success")).mean().alias("avg_duration_ms"),
-        pl.col("duration_ms").filter(pl.col("success")).median().alias("med_duration_ms"),
-        pl.col("duration_ms").filter(pl.col("success")).min().alias("min_duration_ms"),
-        pl.col("duration_ms").filter(pl.col("success")).max().alias("max_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.01).alias("p1_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.05).alias("p5_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.1).alias("p10_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.25).alias("p25_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.5).alias("p50_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.75).alias("p75_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.95).alias("p95_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.99).alias("p99_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).mean().alias("avg_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).median().alias("med_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).min().alias("min_duration_ms"),
+        pl.col("duration_ms").filter(pl.col("is_success")).max().alias("max_duration_ms"),
     ).with_columns(ps.numeric().round(2)).collect()
 
     if result.is_empty():

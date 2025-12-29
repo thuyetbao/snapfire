@@ -9,9 +9,10 @@
 resource "google_compute_instance" "probe" {
   project      = var.project_id
   zone         = "${var.project_region}-a"
-  name         = "ce-probe"
-  description  = "The Probe instance"
+  name         = "friend-probe"
+  description  = "The snapfire friend - Probe member"
   machine_type = "e2-micro"
+  tags         = ["probe", "allow-ssh"]
 
   boot_disk {
     initialize_params {
@@ -22,7 +23,12 @@ resource "google_compute_instance" "probe" {
   network_interface {
     network    = google_compute_network.measurement.id
     subnetwork = google_compute_subnetwork.measurement.id
-    access_config {} # ephemeral external IP
+    access_config {}
+  }
+
+  service_account {
+    email  = google_service_account.sa_largo.email
+    scopes = ["cloud-platform"]
   }
 
   metadata = {
@@ -33,13 +39,6 @@ resource "google_compute_instance" "probe" {
       DESTINATION_IP          = google_compute_instance.target.network_interface[0].network_ip
     })
   }
-
-  service_account {
-    email  = google_service_account.sa_largo.email
-    scopes = ["cloud-platform"]
-  }
-
-  tags = ["probe"]
 
   depends_on = [
     google_compute_instance.target
@@ -53,9 +52,10 @@ resource "google_compute_instance" "probe" {
 resource "google_compute_instance" "target" {
   project      = var.project_id
   zone         = "${var.project_region}-a"
-  name         = "ce-target"
-  description  = "The Target instance"
+  name         = "friend-target"
+  description  = "The snapfire friend - Target member"
   machine_type = "e2-micro"
+  tags         = ["target", "allow-ssh"]
 
   boot_disk {
     initialize_params {
@@ -66,7 +66,12 @@ resource "google_compute_instance" "target" {
   network_interface {
     network    = google_compute_network.measurement.id
     subnetwork = google_compute_subnetwork.measurement.id
-    # access_config {}
+    access_config {}
+  }
+
+  service_account {
+    email  = google_service_account.sa_largo.email
+    scopes = ["cloud-platform"]
   }
 
   metadata = {
@@ -75,11 +80,4 @@ resource "google_compute_instance" "target" {
       c_application_exposer = file("../provision/target/exposer.py")
     })
   }
-
-  service_account {
-    email  = google_service_account.sa_largo.email
-    scopes = ["cloud-platform"]
-  }
-
-  tags = ["target"]
 }
