@@ -1,0 +1,66 @@
+site_name: Snapfire
+site_description: Snapfire
+site_dir: site
+repo_name: thuyetbao/snapfire
+repo_url: https://github.com/thuyetbao/snapfire.git
+copyright: Copyright &copy; 2025 trthuyetbao@gmail.com
+
+theme:
+  name: material
+  icon:
+    repo: material/bird
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.sections
+    - navigation.tabs
+    - search.highlight
+    - search.suggest
+    - search.share
+    - content.code.copy
+    - content.code.select
+
+extra:
+  social:
+    - icon: material/github
+      link: https://github.com/thuyetbao
+      name: thuyetbao on GitHub
+
+plugins:
+  - tags
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+      fallback_to_build_date: true
+      enable_git_follow: false
+  - git-authors
+
+markdown_extensions:
+  - markdown_include.include:
+      base_path: docs
+  - toc:
+      permalink: true
+  - footnotes
+  - admonition
+  - codehilite
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem
+  - pymdownx.tasklist
+  - pymdownx.details
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Snapfire:
+    # - Introduction: index.md
+    # - SAD: sad.md
+    - CHANGELOG: changelog.md
+    - TODO: todo.md
+    - Headstart: headstart.md
+    - Troubleshooting: troubleshooting.md

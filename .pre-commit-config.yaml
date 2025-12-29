@@ -1,0 +1,66 @@
+# Follow instruction at: https://pre-commit.com/
+fail_fast: false
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-ast
+      - id: check-added-large-files
+        args: ["--maxkb=10485760"] # 10MB in advanced
+      - id: check-toml
+      - id: check-json
+      # - id: pretty-format-json
+      - id: check-yaml
+        args: ["--allow-multiple-documents", "--unsafe"]
+      - id: no-commit-to-branch
+        args: [--branch, "production"]
+      - id: check-merge-conflict
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.20.0
+    hooks:
+      - id: pyupgrade
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.12.4
+    hooks:
+      - id: ruff
+
+  - repo: https://github.com/mxr/sync-pre-commit-deps
+    rev: v0.0.1
+    hooks:
+      - id: sync-pre-commit-deps
+
+  - repo: https://github.com/hhatto/autopep8
+    rev: v2.3.2
+    hooks:
+      - id: autopep8
+        args: [
+            # For the list: https://github.com/hhatto/autopep8?tab=readme-ov-file#features
+            "--ignore=E501",
+            # For the selected auto:
+            # E231 - Add missing whitespace.
+            # E301 - Add missing blank line.
+            # E302 - Add missing 2 blank lines.
+            # E303 - Remove extra blank lines.
+            # W291 - Remove trailing whitespace.
+            # E252 - Missing whitespace around parameter equals.
+            # E225 - Fix missing whitespace around operator.
+            # E226 - Fix missing whitespace around arithmetic operator.
+            # E227 - Fix missing whitespace around bitwise/shift operator.
+            # E228 - Fix missing whitespace around modulo operator.
+            "--select=E231,E301,E302,E303,E252,W291",
+            # Make changes to files in place
+            "--in-place",
+            "--recursive",
+            "--exclude=venv",
+            # Aggressive level 3 by enable non-whitespace changes; multiple -a result in more aggressive changes
+            "--aggressive",
+            "--aggressive",
+            "--aggressive",
+            "--jobs=4",
+            "provision",
+          ]

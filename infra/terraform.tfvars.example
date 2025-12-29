@@ -1,0 +1,10 @@
+# [ GOOGLE CLOUD PLATFORM ]
+
+# Organization ID
+# Using `gcloud organizations list`
+organisation_id =
+
+# Project
+# Using `gcloud projects list`
+project_id     =
+project_region =

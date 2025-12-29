@@ -1,0 +1,5 @@
+id: "snapfire"
+name: "Snapfire"
+description: "Snapfire: Server-to-Server Latency Observability Project"
+version: "0.5.1"
+revision: "20251229"
