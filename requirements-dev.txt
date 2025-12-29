@@ -1,0 +1,3 @@
+pyupgrade
+pyclean
+autopep8

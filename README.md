@@ -11,7 +11,7 @@
     <img src="https://img.shields.io/badge/terraform-1.10.5-blue?logo=terraform&logoColor=white" alt="Terraform">
   </a>
   <a href="https://www.python.org/">
-    <img src="https://img.shields.io/badge/python-3.9-blue?logo=python&logoColor=white" alt="Python">
+    <img src="https://img.shields.io/badge/python-3.12-blue?logo=python&logoColor=white" alt="Python">
   </a>
   <br>
 </div>
@@ -45,4 +45,4 @@ The author remains fully responsible for all technical decisions and outcomes.
 
 <!-- Bundle URL -->
 
-[endpoint-origin-url-documentation]: http://localhost:2222
+[endpoint-origin-url-documentation]: http://localhost:7777

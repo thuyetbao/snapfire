@@ -62,5 +62,5 @@ repos:
             "--aggressive",
             "--aggressive",
             "--jobs=4",
-            "application",
+            "provision",
           ]
