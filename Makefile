@@ -55,7 +55,7 @@ install: install-dev install-provision install-docs
 
 up-docs:
 	@echo "The internal documentation has been served at URL: \"http://127.0.0.1:7777\""
-	@uv run -m mkdocs serve --dev-addr 0.0.0.0:7777 \
+	@uv run -m mkdocs serve --dev-addr 0.0.0.0:7777 --dirtyreload \
 		--watch docs/ --watch mkdocs.yaml \
 		--watch README.md --watch CHANGELOG.md --watch TODO.md \
 		--dirty;

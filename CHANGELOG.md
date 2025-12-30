@@ -10,6 +10,8 @@ Bump project version into `0.6.30`
 
 - [x] (fix) Fixed namespace of functions in collector
 
+- [x] (experiment) Added the experiment result into documentation
+
 ## **2025-12-29**
 
 Bump project version into `0.5.1`

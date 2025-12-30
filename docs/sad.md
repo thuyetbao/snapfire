@@ -325,7 +325,7 @@ Example combined output:
 
 Based on the design, the following estimates apply for the data size:
 
-```math
+$$
 \text{Estimated data size}(x) =
 \frac{
   \left( \dfrac{60}{\Delta t} \right)
@@ -335,7 +335,7 @@ Based on the design, the following estimates apply for the data size:
   \cdot x
   \cdot S_{\text{record}}
 }{1024^2}
-```
+$$
 
 Where:
 
