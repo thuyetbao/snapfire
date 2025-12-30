@@ -454,12 +454,12 @@ The experiment was run for 1 day to gather latency data (same probe → same tar
 
 **Latency Summary (by Protocol)**
 
-| Protocol | Records | Success rate | Min | Max | p1  | p5  | p25 | p50 | p75 | p90 | p95 | p99 | Notes |
-| -------- | ------- | ------------ | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ----- |
-| ICMP     | --      | --           | —   | —   | —   | —   | —   | —   | —   | —   | —   | —   |       |
-| TCP      | --      | --           | —   | —   | —   | —   | —   | —   | —   | —   | —   | —   |       |
-| UDP      | --      | --           | —   | —   | —   | —   | —   | —   | —   | —   | —   | —   |       |
-| HTTP     | --      | --           | —   | —   | —   | —   | —   | —   | —   | —   | —   | —   |       |
+| Protocol | Records | Success rate | Min  | Max    | p1   | p5   | p25  | p50  | p75  | p90 | p95  | p99  | Notes                                               |
+| -------- | ------- | ------------ | ---- | ------ | ---- | ---- | ---- | ---- | ---- | --- | ---- | ---- | --------------------------------------------------- |
+| ICMP     | 3,992   | 100%         | 0.85 | 22.82  | 1.02 | 1.10 | 1.25 | 1.46 | 1.87 | —   | 4.54 | 6.01 | Pure network RTT; low baseline, occasional spikes   |
+| TCP      | 17,261  | 100%         | 0.79 | 311.13 | 1.47 | 2.01 | 2.76 | 3.49 | 4.26 | —   | 5.60 | 6.98 | Handshake latency; tail affected by retries/backlog |
+| UDP      | 17,254  | 100%         | 0.71 | 30.74  | 0.96 | 1.33 | 2.00 | 2.43 | 2.97 | —   | 4.00 | 5.02 | Best-effort transport; stable but no reliability    |
+| HTTP     | 17,258  | 100%         | 3.20 | 313.05 | 4.00 | 4.41 | 5.17 | 5.87 | 6.74 | —   | 8.21 | 9.79 | End-to-end latency; includes app + serialization    |
 
 **Notes**:
 
@@ -468,6 +468,8 @@ The experiment was run for 1 day to gather latency data (same probe → same tar
 - Percentiles are computed from **successful measurements only**
 
 - The **Notes** column can capture anomalies (e.g., packet loss, retries, partial failures)
+
+- The result fetched by `curl -X 'GET' 'http://$PROBE_AGENT_IP:8888/metrics?protocol={icmp,tcp,udp,http}&window=1d' -H 'accept: application/json'`
 
 ## **Appendix**
 
@@ -658,12 +660,10 @@ From the expoeriments, the following screenshots were taken:
 
 **Compute instances:**
 
-//
+The instances provisioned are `friend-probe` and `friend-target`
 
-<!-- ![screenshot-gcp-provision-instances](docs/assets/images/screenshot-gcp-provision-instances.png) -->
+![Screnshot - Provision GCP instances](assets/images/screenshot-provision-gcp-instances.png)
 
 **Endpoints:**
 
-//
-
-<!-- ![screenshot-application-probe-agent-endpoints](docs/assets/images/screenshot-application-probe-agent-endpoints.png) -->
+![Screnshot - Probe Agent Endpoints](assets/images/screenshot-application-probe-agent-endpoints.png)
