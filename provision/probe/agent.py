@@ -83,6 +83,8 @@ class RequestParametersModel(BaseModel):
 class _MesurementUnitModel(BaseModel):
     value: float | None = Field(default=None, description="Value of measurement feature")
     unit: str = Field(default="ms", description="Unit of measurement feature")
+    first_seen: datetime | None = Field(default=None, description="First seen of measurement feature")
+    last_seen: datetime | None = Field(default=None, description="First seen of measurement feature")
 
 
 class _GroupPercentileModel(BaseModel):
@@ -216,6 +218,7 @@ async def fetchLatencyMetrics(
         &
         (pl.col("timestamp").str.to_datetime(time_zone="UTC") >= pl.lit(query.cutoff, pl.Datetime(time_zone="UTC")))
     ).with_columns(
+        pl.col("timestamp").str.to_datetime(time_zone="UTC").name.keep(),
         pl.col("status").replace({"success": True, "error": False}, default=False, return_dtype=pl.Boolean).alias("is_success"),
         pl.col("status").replace({"success": False, "error": True}, default=False, return_dtype=pl.Boolean).alias("is_error"),
     ).select(
@@ -225,6 +228,8 @@ async def fetchLatencyMetrics(
             .otherwise((pl.col("is_success").sum() / pl.count()).mul(100))
             .cast(pl.Float64)
             .alias("success_rate"),
+        pl.col("timestamp").min().alias("first_seen"),
+        pl.col("timestamp").max().alias("last_seen"),
         pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.01).alias("p1_duration_ms"),
         pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.05).alias("p5_duration_ms"),
         pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.1).alias("p10_duration_ms"),
@@ -255,6 +260,8 @@ async def fetchLatencyMetrics(
         "observation": {
             "count": bundle["count"],
             "success_rate": bundle["success_rate"],
+            "first_seen": bundle["first_seen"],
+            "last_seen": bundle["last_seen"],
         },
         "percentile": {
             "p1": {"value": bundle["p1_duration_ms"], "unit": "ms"},

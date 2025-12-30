@@ -57,6 +57,18 @@ sudo cloud-init status
 sudo cloud-init status --long
 ```
 
+If initialization is complete, the following output is expected:
+
+```bash
+status: running
+extended_status: running
+boot_status_code: enabled-by-generator
+last_update: Thu, 01 Jan 1970 00:00:26 +0000
+detail: DataSourceGCELocal
+errors: []
+recoverable_errors: {}
+```
+
 Check logs if initialization is slow or degraded:
 
 ```bash
@@ -88,8 +100,8 @@ sudo systemctl restart probe-collector.service
 sudo systemctl restart probe-agent.service
 
 # Inspect logs
-journalctl -f -u probe-agent.service -n 50
 journalctl -f -u probe-collector.service -n 50
+journalctl -f -u probe-agent.service -n 50
 
 # Validate health endpoint
 curl -v http://$PROBE_EXTERNAL_IP:8888/health
@@ -111,8 +123,8 @@ sudo systemctl restart target-exposer.service
 sudo systemctl restart target-udp-echo.service
 
 # Inspect logs
-journalctl -f -u target-exposer.service -n 50
 journalctl -f -u target-udp-echo.service -n 50
+journalctl -f -u target-exposer.service -n 50
 
 # Validate health endpoint
 curl -v http://$TARGET_EXTERNAL_IP:9999/_/health

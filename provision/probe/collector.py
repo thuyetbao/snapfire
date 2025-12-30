@@ -137,20 +137,20 @@ PROTOCOL_RUNNERS: dict[str, Callable[..., asyncio.Future]] = {
 
 PROTOCOL_DEFAULT_SCHEDULERS_CONFIGURATIONS: dict[str, dict[str, float]] = {
     "icmp": {
-        "interval": 2.0,
-        "timeout": 2.0,
+        "scheduler_interval": 2.0,
+        "scheduler_timeout": 2.0,
     },
     "tcp": {
-        "interval": 5.0,
-        "timeout": 2.0,
+        "scheduler_interval": 5.0,
+        "scheduler_timeout": 2.0,
     },
     "udp": {
-        "interval": 5.0,
-        "timeout": 2.0,
+        "scheduler_interval": 5.0,
+        "scheduler_timeout": 2.0,
     },
     "http": {
-        "interval": 5.0,
-        "timeout": 2.0,
+        "scheduler_interval": 5.0,
+        "scheduler_timeout": 2.0,
     },
 }
 
@@ -202,8 +202,8 @@ async def invoke_scheduler_with_protocol(
     queue: asyncio.Queue,
     stop_event: asyncio.Event,
     func: Callable[..., Awaitable[Tuple[Optional[float], str, Optional[str]]]],
-    interval: float,
-    timeout: float,
+    scheduler_interval: float,
+    scheduler_timeout: float,
     **func_kwargs,
 ):
 
@@ -220,7 +220,7 @@ async def invoke_scheduler_with_protocol(
         # Set
         structlog.contextvars.bind_contextvars(run_id=run_idx)
         await LOG.ainfo(f"Start collect metrics using {func.__name__} function")
-        next_tick += interval
+        next_tick += scheduler_interval
 
         try:
             await asyncio.wait_for(
@@ -232,7 +232,7 @@ async def invoke_scheduler_with_protocol(
                 ),
                 # Add 0.5 seconds to the timeout to account for the time it takes
                 # to collect the latency measurement and enqueue the record
-                timeout=timeout + 0.5,
+                timeout=scheduler_timeout + 0.5,
             )
         except Exception as exc:
             await LOG.aexception(f"Failed to collect metrics with {func.__name__} function on {exc}")
@@ -320,10 +320,10 @@ async def run_measurement(
     proto_schedulers = PROTOCOL_DEFAULT_SCHEDULERS_CONFIGURATIONS.copy()
     for proto in protocols:
         on_args = proto_arguments[proto]
-        if "timeout" in on_args:
-            proto_schedulers[proto]["timeout"] = on_args["timeout"]
-        if "interval" in on_args:
-            proto_schedulers[proto]["interval"] = on_args["interval"]
+        if "scheduler_timeout" in on_args:
+            proto_schedulers[proto]["scheduler_timeout"] = on_args["scheduler_timeout"]
+        if "scheduler_interval" in on_args:
+            proto_schedulers[proto]["scheduler_interval"] = on_args["scheduler_interval"]
 
     # Build
     proto_configurations = PROTOCOL_DEFAULT_CONFIGURATIONS.copy()
@@ -382,8 +382,8 @@ async def run_measurement(
                 queue=proto_queues[proto],
                 stop_event=stop_event,
                 func=PROTOCOL_RUNNERS[proto],
-                interval=proto_schedulers[proto]["interval"],
-                timeout=proto_schedulers[proto]["timeout"],
+                scheduler_interval=proto_schedulers[proto]["scheduler_interval"],
+                scheduler_timeout=proto_schedulers[proto]["scheduler_timeout"],
                 **proto_configurations[proto],
             )
         )

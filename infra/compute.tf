@@ -21,8 +21,8 @@ resource "google_compute_instance" "probe" {
   }
 
   network_interface {
-    network    = google_compute_network.measurement.id
-    subnetwork = google_compute_subnetwork.measurement.id
+    network    = google_compute_network.horizon_space.id
+    subnetwork = google_compute_subnetwork.horizon_space_public.id
     access_config {}
   }
 
@@ -64,8 +64,8 @@ resource "google_compute_instance" "target" {
   }
 
   network_interface {
-    network    = google_compute_network.measurement.id
-    subnetwork = google_compute_subnetwork.measurement.id
+    network    = google_compute_network.horizon_space.id
+    subnetwork = google_compute_subnetwork.horizon_space_public.id
     access_config {}
   }
 
