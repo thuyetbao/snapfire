@@ -128,6 +128,7 @@ and is responsible for collecting latency data from the target instance.
 | Deployment  | Daemon                                                  |
 | Language    | Python                                                  |
 | Runtime     | Compute Engine, Python 3.12                             |
+| Resource    | `e2-micro`                                              |
 
 The collector is designed with the following principles:
 
@@ -220,6 +221,7 @@ and is responsible for serving the latency metrics to the client.
 | Deployment  | Daemon                                 |
 | Language    | Python, Framework (FastAPI), uvicorn   |
 | Runtime     | Compute Engine, Python 3.12            |
+| Resource    | `e2-micro`                             |
 | Expose      | Port `8888`                            |
 
 The agent is designed with the following principles:
