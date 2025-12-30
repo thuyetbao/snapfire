@@ -1,5 +1,5 @@
 id: "snapfire"
 name: "Snapfire"
-description: "Snapfire: Server-to-Server Latency Observability Project"
-version: "0.6.31"
-revision: "20251230"
+description: "Snapfire: server-to-server latency observability project"
+version: "0.6.35"
+revision: "20251231"

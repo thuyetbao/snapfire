@@ -50,7 +50,7 @@ write_files:
       WorkingDirectory=/opt/probe
       Environment="PATH=/opt/probe/venv/bin:/usr/local/bin:/usr/bin"
       Environment="DESTINATION_IP=${DESTINATION_IP}"
-      ExecStart=/opt/probe/venv/bin/python collector.py --ip ${DESTINATION_IP} --output /mnt/usr/probe/measurement.jsonl --set "tcp_port=22" --set "udp_port=5353" --set "http_port=9999" --set "http_path=/_/health" --set "http_scheme=http"
+      ExecStart=/opt/probe/venv/bin/python /opt/probe/collector.py --ip ${DESTINATION_IP} --output /mnt/usr/probe/measurement.jsonl --set "tcp_port=22" --set "udp_port=5353" --set "http_port=9999" --set "http_path=/_/health" --set "http_scheme=http"
       Restart=always
       RestartSec=5
 

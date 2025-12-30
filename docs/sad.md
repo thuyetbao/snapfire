@@ -128,7 +128,6 @@ and is responsible for collecting latency data from the target instance.
 | Deployment  | Daemon                                                  |
 | Language    | Python                                                  |
 | Runtime     | Compute Engine, Python 3.12                             |
-| Resource    | `e2-micro`                                              |
 
 The collector is designed with the following principles:
 
@@ -221,7 +220,6 @@ and is responsible for serving the latency metrics to the client.
 | Deployment  | Daemon                                 |
 | Language    | Python, Framework (FastAPI), uvicorn   |
 | Runtime     | Compute Engine, Python 3.12            |
-| Resource    | `e2-micro`                             |
 | Expose      | Port `8888`                            |
 
 The agent is designed with the following principles:
@@ -382,18 +380,42 @@ The architecture of the system is as follows:
 
 ![SAD](assets/images/sad-with-google-cloud-platform.png)
 
-**Networking**
+**Components**:
 
-| Aspect              | Details                                                     |
-| ------------------- | ----------------------------------------------------------- |
-| Project             | `$PROJECT_ID`                                               |
-| Region              | `$PROJECT_REGION`                                           |
-| VPC                 | `vpc-network-measurement`                                   |
-| Subnet              | Single region, CIDR `10.20.0.0/16`                          |
-| VM Roles (via tags) | `probe`, `target`                                           |
-| Traffic Policy      | Same behavior as default network, but explicit & controlled |
+For **Networking**:
 
-**Firewall / Traffic Rules**
+| Aspect              | Details                                                             |
+| ------------------- | ------------------------------------------------------------------- |
+| Project             | `$PROJECT_ID`                                                       |
+| Region              | `$PROJECT_REGION`                                                   |
+| VPC                 | `vpc-horizon-space`                                                 |
+| Subnet              | `subnet-$PROJECT_REGION-public`, single region, CIDR `10.20.0.0/16` |
+| VM Roles (via tags) | `probe`, `target`                                                   |
+| Traffic Policy      | Same behavior as default network, but explicit & controlled         |
+
+For `probe`:
+
+| Attribute       | Description                                                           |
+| --------------- | --------------------------------------------------------------------- |
+| Type            | Compute Engine                                                        |
+| Name            | `friend-probe`                                                        |
+| Resource        | `e2-micro` (2 vCPUs, 1 GB Memory)                                     |
+| Image           | `projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64` |
+| Service account | `sa-largo`                                                            |
+| Tag             | `probe`                                                               |
+
+For `target`:
+
+| Attribute       | Description                                                           |
+| --------------- | --------------------------------------------------------------------- |
+| Type            | Compute Engine                                                        |
+| Name            | `friend-target`                                                       |
+| Resource        | `e2-micro` (2 vCPUs, 1 GB Memory)                                     |
+| Image           | `projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64` |
+| Service account | `sa-ringmaster`                                                       |
+| Tag             | `target`                                                              |
+
+For **Firewall / Traffic Rules**:
 
 | Source   | Destination | Protocol / Port | Allowed | Description                            |
 | -------- | ----------- | --------------- | ------- | -------------------------------------- |
@@ -427,7 +449,7 @@ For deployment workflow, please refer to the [Workflow](workflow.md) section.
 
 ## **Technical Decisions**
 
-### [TECHNICAL DECISION] Write records with async mode and queues
+### [Decision] Write records with async mode and queues
 
 Based on the measurement process, there can be multiple tasks writing to the same data file (a single JSONL file) concurrently.
 To handle this safely and efficiently, I adopt an asynchronous, batch-oriented writing strategy using asyncio queues.
@@ -647,7 +669,7 @@ For the implement, I use [asyncio](https://docs.python.org/3/library/asyncio.htm
 === "Idea: async write lock"
 
     ```python
-    # Create **one global lock**:
+    # Create single global lock
     WRITE_LOCK = asyncio.Lock()
 
     Use it when writing:
