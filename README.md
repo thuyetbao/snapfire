@@ -4,7 +4,7 @@
   <p>Server-to-Server latency observability project</p>
 
   <a href="https://github.com/thuyetbao/snapfire">
-    <img src="https://img.shields.io/badge/project--snapfire-0.6.31-darkblue?logo=fantom&logoColor=white" alt="Project">
+    <img src="https://img.shields.io/badge/project--snapfire-0.6.35-darkblue?logo=fantom&logoColor=white" alt="Project">
   </a>
   <br>
   <a href="https://cloud.google.com/">

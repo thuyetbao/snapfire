@@ -2,7 +2,7 @@
 
 ## **2025-12-31**
 
-Bump project version into `0.6.32`
+Bump project version into `0.6.35`
 
 - [x] (docs) Updated contributors with metadata
 

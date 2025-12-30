@@ -2,7 +2,8 @@
 
 ## **Overview**
 
-The document outlines the steps to diagnose and resolve the issues encountered during the deployment of the project
+The document outlines the steps to diagnose and resolve the issues encountered
+during the deployment of the project
 
 ## **Problems**
 
@@ -22,4 +23,5 @@ root@friend-probe:~$ systemctl status probe-agent.service
 root@friend-probe:~$
 ```
 
-Workaround: Re-deploy the application again by `restart` command
+Workaround: Using journalctl to check the logs to diagnose the issue
+and re-deploying the application by using the `restart` command.
