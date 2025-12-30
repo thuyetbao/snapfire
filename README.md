@@ -24,13 +24,13 @@
 
 **Features:**
 
-- Provision two virtual machines on Google Cloud Platform using infrastructure-as-code
+- Measure probe–target network latency via four methods: ICMP, UDP, TCP, and HTTP.
 
-- Deploy containerized services across cloud virtual machines
+- Provision infrastructure (compute, firewall, iam) on Google Cloud Platform using infrastructure-as-code.
 
-- Measure probe–target network latency via four methods: ICMP, UDP, TCP, and HTTP
+- Deploy daemon-based services across cloud virtual machines.
 
-- Document architecture, setup, metrics interpretation, assumptions, and tradeoffs
+- Document architecture, setup, metrics interpretation, assumptions, and tradeoffs.
 
 > [!NOTE]
 > For solution design concepts, reference to: [docs/sad.md](docs/sad.md)
