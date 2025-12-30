@@ -6,7 +6,9 @@ Bump project version into `0.6.30`
 
 - [x] (docs) Added the SAD, workflows for design concepts of the project
 
-- [x] (docs) Updated README document
+- [x] (docs) Updated README document with badges
+
+- [x] (fix) Fixed namespace of functions in collector
 
 ## **2025-12-29**
 

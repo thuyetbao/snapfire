@@ -3,8 +3,12 @@
   <h3>Snapfire</h3>
   <p>Server-to-Server Latency Observability Project</p>
 
+  <a href="https://github.com/thuyetbao/snapfire">
+    <img src="https://img.shields.io/badge/project--snapfire-0.6.30-blue?logo=fantom&logoColor=white" alt="Project">
+  </a>
+  <br>
   <a href="https://cloud.google.com/">
-    <img src="https://img.shields.io/badge/google%20cloud%20platform-1.0.0-blue?logo=google-cloud&logoColor=white" alt="Google Cloud Platform">
+    <img src="https://img.shields.io/badge/cloud-google--cloud--platform-blue?logo=google-cloud&logoColor=white" alt="Google Cloud Platform">
   </a>
   <br>
   <a href="https://www.terraform.io/">
