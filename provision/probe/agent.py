@@ -216,8 +216,8 @@ async def fetchLatencyMetrics(
         &
         (pl.col("timestamp").str.to_datetime(time_zone="UTC") >= pl.lit(query.cutoff, pl.Datetime(time_zone="UTC")))
     ).with_columns(
-        pl.col("status").replace({"success": True, "error": False}, default=None).alias("is_success"),
-        pl.col("status").replace({"success": False, "error": True}, default=None).alias("is_error"),
+        pl.col("status").replace({"success": True, "error": False}, default=False, return_dtype=pl.Boolean).alias("is_success"),
+        pl.col("status").replace({"success": False, "error": True}, default=False, return_dtype=pl.Boolean).alias("is_error"),
     ).select(
         pl.count().alias("count"),
         pl.when(pl.count() == 0)
@@ -236,7 +236,7 @@ async def fetchLatencyMetrics(
         pl.col("duration_ms").filter(pl.col("is_success")).median().alias("med_duration_ms"),
         pl.col("duration_ms").filter(pl.col("is_success")).min().alias("min_duration_ms"),
         pl.col("duration_ms").filter(pl.col("is_success")).max().alias("max_duration_ms"),
-    ).with_columns(ps.numeric().round(2)).collect()
+    ).with_columns(ps.numeric().round(3)).collect()
 
     if result.is_empty():
         return {

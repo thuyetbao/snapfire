@@ -17,3 +17,9 @@ The headstart to develop project
 - Build tool `make`
 
 - GitHub CLI `gh`
+
+- gcloud CLI `gcloud`
+
+## **Account**
+
+- Google Cloud Platform (GCP) account

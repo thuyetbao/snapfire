@@ -3,8 +3,12 @@
   <h3>Snapfire</h3>
   <p>Server-to-Server Latency Observability Project</p>
 
+  <a href="https://github.com/thuyetbao/snapfire">
+    <img src="https://img.shields.io/badge/project--snapfire-0.6.30-blue?logo=fantom&logoColor=white" alt="Project">
+  </a>
+  <br>
   <a href="https://cloud.google.com/">
-    <img src="https://img.shields.io/badge/google%20cloud%20platform-1.0.0-blue?logo=google-cloud&logoColor=white" alt="Google Cloud Platform">
+    <img src="https://img.shields.io/badge/cloud-google--cloud--platform-blue?logo=google-cloud&logoColor=white" alt="Google Cloud Platform">
   </a>
   <br>
   <a href="https://www.terraform.io/">
@@ -20,20 +24,23 @@
 
 **Features:**
 
-- Provision two virtual machines on Google Cloud Platform using infrastructure-as-code
+- Measure probe–target network latency via four methods: ICMP, UDP, TCP, and HTTP.
 
-- Deploy containerized services across cloud virtual machines
+- Provision infrastructure (compute, firewall, iam) on Google Cloud Platform using infrastructure-as-code.
 
-- Measure probe–target network latency via four methods: ICMP, UDP, TCP, and HTTP
+- Deploy daemon-based services across cloud virtual machines.
 
-- Document architecture, setup, metrics interpretation, assumptions, and tradeoffs
+- Document architecture, setup, metrics interpretation, assumptions, and tradeoffs.
 
 > [!NOTE]
-> For solution design concepts, assignments, consult document [docs/sad.md](docs/sad.md)
+> For solution design concepts, reference to: [docs/sad.md](docs/sad.md)
+>
+> For project workflow, reference to: [docs/workflow.md](docs/workflow.md)
 
 **Documentation:**
 
-The project has been document at folder [docs](docs/) and live at [endpoint documentation][endpoint-origin-url-documentation]
+The project has been document at folder [docs](docs/)
+and live at [endpoint documentation (local)][endpoint-origin-url-documentation]
 
 **Disclaimer:**
 

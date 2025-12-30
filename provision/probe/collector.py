@@ -121,9 +121,9 @@ async def run_udp(host: str, port: int, timeout: float = 1.0) -> None:
 
 
 @measure_latency
-async def run_http(url: str, timeout: float = 1.0) -> None:
+async def run_http(url: str, headers: dict[str, str] | None = None, timeout: float = 1.0) -> None:
     timeout_cfg = aiohttp.ClientTimeout(total=timeout)
-    async with aiohttp.ClientSession(timeout=timeout_cfg) as session:
+    async with aiohttp.ClientSession(headers=headers, timeout=timeout_cfg) as session:
         async with session.get(url) as resp:
             resp.raise_for_status()
 
@@ -158,17 +158,22 @@ PROTOCOL_DEFAULT_SCHEDULERS_CONFIGURATIONS: dict[str, dict[str, float]] = {
 PROTOCOL_DEFAULT_CONFIGURATIONS: dict[str, dict[str, Any]] = {
     "icmp": {
         "host": "[host]",
+        "timeout": 2.0,
     },
     "tcp": {
         "host": "[host]",
         "port": 80,
+        "timeout": 2.0,
     },
     "udp": {
         "host": "[host]",
         "port": 53,
+        "timeout": 2.0,
     },
     "http": {
         "url": "[url]",
+        "timeout": 2.0,
+        "headers": None,
     },
 }
 
@@ -207,7 +212,7 @@ async def invoke_scheduler_with_protocol(
     next_tick = loop.time()
     run_idx = 0
     structlog.contextvars.bind_contextvars(protocol=protocol)
-    await LOG.ainfo(f"Run experiment for protocol {protocol}")
+    await LOG.ainfo(f"Run scheduler for protocol {protocol}")
 
     # Run
     while not stop_event.is_set():
@@ -282,7 +287,7 @@ def install_signal_handlers(event: asyncio.Event):
     signal.signal(signal.SIGTERM, _handler)
 
 
-async def run_measurements(
+async def run_measurement(
     *,
     ip: str,
     output: str,
@@ -406,21 +411,21 @@ def parse_argument_address(value: str) -> str:
     try:
         ipaddress.ip_address(value)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"Invalid address '{value}'. Expected IP address")
+        raise argparse.ArgumentTypeError(f"Invalid IP address value={value}. Expected IP address")
     else:
         return value
 
 
 def parse_argument_keyval(value: str):
     if "=" not in value:
-        raise argparse.ArgumentTypeError(f"Invalid key=value '{value}'. Expected key=value")
+        raise argparse.ArgumentTypeError(f"Invalid key=value at element='{value}. Expected key=value style set")
     key, val = value.split("=", 1)
     return key, val
 
 
 def parse_argument_output_jsonl(value: str) -> str:
     if pathlib.Path(value).suffix != ".jsonl":
-        raise argparse.ArgumentTypeError(f"Invalid file '{value}'. Expected JSONL file")
+        raise argparse.ArgumentTypeError(f"Invalid extension format={value}. Expected JSONL extension")
     return value
 
 
@@ -439,9 +444,9 @@ if __name__ == "__main__":
         >>> python collector.py \
                 --ip 8.8.8.8 \
                 --output data/measurement.jsonl \
-                --set "tcp_port=80" \
-                --set "udp_port=53" \
-                --set "http_port=4200" --set "http_path=//health" --set "http_scheme=http"
+                --set "tcp_port=22" \
+                --set "udp_port=5353" \
+                --set "http_port=9999" --set "http_path=//health" --set "http_scheme=http"
 
         Note
         ----
@@ -463,7 +468,7 @@ if __name__ == "__main__":
         "-o", "--output",
         dest="output",
         type=parse_argument_output_jsonl,
-        default="latency.jsonl",
+        default="measurement.jsonl",
         help="Output JSONL file path. Default is %(default)s"
     )
     parser.add_argument(
@@ -480,7 +485,7 @@ if __name__ == "__main__":
 
     # Run
     asyncio.run(
-        run_measurements(
+        run_measurement(
             ip=args.ip,
             output=args.output,
             configuration={elem[0]: elem[1] for elem in args.config},

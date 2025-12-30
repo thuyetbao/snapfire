@@ -55,24 +55,25 @@ install: install-dev install-provision install-docs
 
 up-docs:
 	@echo "The internal documentation has been served at URL: \"http://127.0.0.1:7777\""
-	@uv run -m mkdocs serve --dev-addr 0.0.0.0:7777 \
+	@uv run -m mkdocs serve --dev-addr 0.0.0.0:7777 --dirtyreload \
 		--watch docs/ --watch mkdocs.yaml \
 		--watch README.md --watch CHANGELOG.md --watch TODO.md \
 		--dirty;
 
 up-probe-agent:
 	cd provision/probe && \
-		DATA_MEASUREMENT_DATA_JSONL_PATH=data/measurement.jsonl uvicorn agent:app --reload --host 0.0.0.0 --port 8888 \
-			--workers 1 --no-server-header --no-date-header
+		DATA_MEASUREMENT_DATA_JSONL_PATH=data/measurement.jsonl \
+			uvicorn agent:app --reload --host 0.0.0.0 --port 8888 \
+				--workers 1 --no-server-header --no-date-header
 
 up-probe-collector:
 	cd provision/probe && \
 		python collector.py \
 			--ip ${LOCAL_PUBLIC_IP} \
 			--output data/test.jsonl \
-			--set "tcp_port=80" \
-			--set "udp_port=53" \
-			--set "http_port=4200" --set "http_path=//health" --set "http_scheme=http"
+			--set "tcp_port=22" \
+			--set "udp_port=5353" \
+			--set "http_port=9999" --set "http_path=//health" --set "http_scheme=http"
 
 up-target-exposer:
 	cd provision/target && \

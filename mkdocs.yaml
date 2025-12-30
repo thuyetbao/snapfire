@@ -27,14 +27,13 @@ extra:
       link: https://github.com/thuyetbao
       name: thuyetbao on GitHub
 
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
 plugins:
   - tags
   - search
-  - git-revision-date-localized:
-      enable_creation_date: true
-      fallback_to_build_date: true
-      enable_git_follow: false
-  - git-authors
 
 markdown_extensions:
   - markdown_include.include:
@@ -57,9 +56,10 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 nav:
-  - Snapfire:
-    # - Introduction: index.md
-    # - SAD: sad.md
+  - Project:
+    - Introduction: index.md
+    - SAD: sad.md
+    - Workflow: workflow.md
     - CHANGELOG: changelog.md
     - TODO: todo.md
     - Headstart: headstart.md
