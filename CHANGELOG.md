@@ -2,6 +2,12 @@
 
 ## **2025-12-30**
 
+Bump project version into `0.6.31`
+
+- [x] (docs) Added resouces type, enabled tabbed navigation feature
+
+- [x] (docs) Updated README badges
+
 Bump project version into `0.6.30`
 
 - [x] (docs) Added the SAD, workflows for design concepts of the project

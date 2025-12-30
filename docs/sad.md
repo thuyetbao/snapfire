@@ -128,6 +128,7 @@ and is responsible for collecting latency data from the target instance.
 | Deployment  | Daemon                                                  |
 | Language    | Python                                                  |
 | Runtime     | Compute Engine, Python 3.12                             |
+| Resource    | `e2-micro`                                              |
 
 The collector is designed with the following principles:
 
@@ -220,6 +221,7 @@ and is responsible for serving the latency metrics to the client.
 | Deployment  | Daemon                                 |
 | Language    | Python, Framework (FastAPI), uvicorn   |
 | Runtime     | Compute Engine, Python 3.12            |
+| Resource    | `e2-micro`                             |
 | Expose      | Port `8888`                            |
 
 The agent is designed with the following principles:
@@ -473,38 +475,6 @@ The experiment was run for 1 day to gather latency data (same probe → same tar
 
 ## **Appendix**
 
-### Implement asynchronously write records to JSONL file
-
-For the implement, I use [asyncio](https://docs.python.org/3/library/asyncio.html) and [aiofiles](https://pypi.org/project/aiofiles/).
-
-=== "(Selected method) Idea: async with queue"
-
-    ```python
-    queue = asyncio.Queue()
-
-    # Producers
-    await queue.put(record)
-
-    # Single writer coroutine
-    while True:
-        record = await queue.get()
-        async with aiofiles.open(output, "a") as f:
-            await f.write(json.dumps(record) + "\n")
-        queue.task_done()
-    ```
-
-=== "Idea: async write lock"
-
-    ```python
-    # Create **one global lock**:
-    WRITE_LOCK = asyncio.Lock()
-
-    Use it when writing:
-    async with WRITE_LOCK:
-        async with aiofiles.open(output, "a") as f:
-            await f.write(json.dumps(record) + "\n")
-    ```
-
 ### **Protocol implementation**
 
 Each protocol measures latency at a different layer of the network stack. Lower-layer protocols isolate raw network behavior, while higher-layer protocols progressively include transport state and application processing. Together, they provide layered visibility into where latency is introduced.
@@ -653,6 +623,38 @@ Use persistent storage to prevent data loss during instance restarts or re-creat
 - Optional local buffering with flush on shutdown
 
 - Enables historical analysis and SLO evaluation
+
+### **Implement asynchronously write records to JSONL file**
+
+For the implement, I use [asyncio](https://docs.python.org/3/library/asyncio.html) and [aiofiles](https://pypi.org/project/aiofiles/).
+
+=== "(Selected method) Idea: async with queue"
+
+    ```python
+    queue = asyncio.Queue()
+
+    # Producers
+    await queue.put(record)
+
+    # Single writer coroutine
+    while True:
+        record = await queue.get()
+        async with aiofiles.open(output, "a") as f:
+            await f.write(json.dumps(record) + "\n")
+        queue.task_done()
+    ```
+
+=== "Idea: async write lock"
+
+    ```python
+    # Create **one global lock**:
+    WRITE_LOCK = asyncio.Lock()
+
+    Use it when writing:
+    async with WRITE_LOCK:
+        async with aiofiles.open(output, "a") as f:
+            await f.write(json.dumps(record) + "\n")
+    ```
 
 ### **Screenshot**
 
