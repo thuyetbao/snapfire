@@ -382,15 +382,27 @@ The architecture of the system is as follows:
 
 **Components**:
 
+For **Networking**:
+
+| Aspect              | Details                                                             |
+| ------------------- | ------------------------------------------------------------------- |
+| Project             | `$PROJECT_ID`                                                       |
+| Region              | `$PROJECT_REGION`                                                   |
+| VPC                 | `vpc-horizon-space`                                                 |
+| Subnet              | `subnet-$PROJECT_REGION-public`, single region, CIDR `10.20.0.0/16` |
+| VM Roles (via tags) | `probe`, `target`                                                   |
+| Traffic Policy      | Same behavior as default network, but explicit & controlled         |
+
 For `probe`:
 
 | Attribute       | Description                                                           |
 | --------------- | --------------------------------------------------------------------- |
 | Type            | Compute Engine                                                        |
 | Name            | `friend-probe`                                                        |
-| Resource        | `e2-micro`                                                            |
+| Resource        | `e2-micro` (2 vCPUs, 1 GB Memory)                                     |
 | Image           | `projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64` |
-| Service account | `sa_largo`                                                            |
+| Service account | `sa-largo`                                                            |
+| Tag             | `probe`                                                               |
 
 For `target`:
 
@@ -398,22 +410,12 @@ For `target`:
 | --------------- | --------------------------------------------------------------------- |
 | Type            | Compute Engine                                                        |
 | Name            | `friend-target`                                                       |
-| Resource        | `e2-micro`                                                            |
+| Resource        | `e2-micro` (2 vCPUs, 1 GB Memory)                                     |
 | Image           | `projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64` |
-| Service account | `sa_largo`                                                            |
+| Service account | `sa-ringmaster`                                                       |
+| Tag             | `target`                                                              |
 
-**Networking**:
-
-| Aspect              | Details                                                     |
-| ------------------- | ----------------------------------------------------------- |
-| Project             | `$PROJECT_ID`                                               |
-| Region              | `$PROJECT_REGION`                                           |
-| VPC                 | `vpc-network-measurement`                                   |
-| Subnet              | Single region, CIDR `10.20.0.0/16`                          |
-| VM Roles (via tags) | `probe`, `target`                                           |
-| Traffic Policy      | Same behavior as default network, but explicit & controlled |
-
-**Firewall / Traffic Rules**:
+For **Firewall / Traffic Rules**:
 
 | Source   | Destination | Protocol / Port | Allowed | Description                            |
 | -------- | ----------- | --------------- | ------- | -------------------------------------- |
