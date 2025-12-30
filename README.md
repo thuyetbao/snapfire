@@ -4,7 +4,7 @@
   <p>Server-to-Server Latency Observability Project</p>
 
   <a href="https://github.com/thuyetbao/snapfire">
-    <img src="https://img.shields.io/badge/project--snapfire-0.6.30-blue?logo=fantom&logoColor=white" alt="Project">
+    <img src="https://img.shields.io/badge/project--snapfire-0.6.31-darkblue?logo=fantom&logoColor=white" alt="Project">
   </a>
   <br>
   <a href="https://cloud.google.com/">
@@ -12,12 +12,18 @@
   </a>
   <br>
   <a href="https://www.terraform.io/">
-    <img src="https://img.shields.io/badge/terraform-1.10.5-blue?logo=terraform&logoColor=white" alt="Terraform">
+    <img src="https://img.shields.io/badge/terraform-1.10.5-darkorange?logo=terraform&logoColor=white" alt="Terraform">
   </a>
   <a href="https://www.python.org/">
-    <img src="https://img.shields.io/badge/python-3.12-blue?logo=python&logoColor=white" alt="Python">
+    <img src="https://img.shields.io/badge/python-3.12-darkorange?logo=python&logoColor=white" alt="Python">
   </a>
   <br>
+  <a href="https://pre-commit.com/" target="_blank">
+    <img src="https://img.shields.io/badge/pre--commit-enabled-teal?logo=pre-commit" alt="pre-commit enabled">
+  </a>
+  <a href="https://docs.pydantic.dev/latest/" target="_blank">
+    <img src="https://img.shields.io/badge/data--model-pydantic-teal?logo=pydantic" alt="Data validation with pydantic">
+  </a>
 </div>
 
 ---
