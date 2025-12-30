@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## **2025-12-30**
+
+Bump project version into `0.6.30`
+
+- [x] (docs) Added the SAD, workflows for design concepts of the project
+
+- [x] (docs) Updated README document
+
 ## **2025-12-29**
 
 Bump project version into `0.5.1`

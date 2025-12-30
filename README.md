@@ -29,11 +29,14 @@
 - Document architecture, setup, metrics interpretation, assumptions, and tradeoffs
 
 > [!NOTE]
-> For solution design concepts, assignments, consult document [docs/sad.md](docs/sad.md)
+> For solution design concepts, reference to: [docs/sad.md](docs/sad.md)
+>
+> For project workflow, reference to: [docs/workflow.md](docs/workflow.md)
 
 **Documentation:**
 
-The project has been document at folder [docs](docs/) and live at [endpoint documentation][endpoint-origin-url-documentation]
+The project has been document at folder [docs](docs/)
+and live at [endpoint documentation (local)][endpoint-origin-url-documentation]
 
 **Disclaimer:**
 

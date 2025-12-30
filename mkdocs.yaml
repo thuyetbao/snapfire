@@ -58,8 +58,8 @@ markdown_extensions:
 
 nav:
   - Snapfire:
-    # - Introduction: index.md
-    # - SAD: sad.md
+    - SAD: sad.md
+    - Workflow: workflow.md
     - CHANGELOG: changelog.md
     - TODO: todo.md
     - Headstart: headstart.md
