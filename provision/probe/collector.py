@@ -216,11 +216,13 @@ async def invoke_scheduler_with_protocol(
 
     # Run
     while not stop_event.is_set():
+
+        # Set
+        structlog.contextvars.bind_contextvars(run_id=run_idx)
+        await LOG.ainfo(f"Start collect metrics using {func.__name__} function")
         next_tick += interval
 
         try:
-            await LOG.ainfo(f"Start collect metrics using {func.__name__} function")
-            structlog.contextvars.bind_contextvars(run_id=run_idx)
             await asyncio.wait_for(
                 collect(
                     protocol=protocol,
@@ -232,7 +234,8 @@ async def invoke_scheduler_with_protocol(
                 # to collect the latency measurement and enqueue the record
                 timeout=timeout + 0.5,
             )
-        except Exception:
+        except Exception as exc:
+            await LOG.aexception(f"Failed to collect metrics with {func.__name__} function on {exc}")
             pass
         finally:
             await LOG.ainfo("Push record into queue")

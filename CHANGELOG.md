@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## **2025-12-31**
+
+Bump project version into `0.6.32`
+
+- [x] (docs) Updated contributors with metadata
+
+- [x] (chore) Layout the metadata file for provision
+
 ## **2025-12-30**
 
 Bump project version into `0.6.31`

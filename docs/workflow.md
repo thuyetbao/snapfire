@@ -16,9 +16,21 @@ Manual created GCP project.
 
 ### Step 2: Configure GCP Access
 
+Change working directory to `infra` to provision infrastructure:
+
+```bash
+cd infra
+```
+
 Configure credentials and project context:
 
 ```bash
+# Set environment variables
+export PROJECT_ID="[PROJECT_ID]"
+export ACCOUNT_ID="[ACCOUNT_ID]"
+export PROJECT_REGION="[PROJECT_REGION]"
+
+# Authenticate and set context
 gcloud auth application-default login
 gcloud config set project $PROJECT_ID
 gcloud config set account $ACCOUNT_ID
@@ -81,28 +93,31 @@ journalctl -f -u probe-collector.service -n 50
 
 # Validate health endpoint
 curl -v http://$PROBE_EXTERNAL_IP:8888/health
+# {
+#   "timestamp": "2025-12-30T14:20:00.294Z",
+#   "timezone": "UTC"
+# }
 ```
 
 For `target` instance
 
 ```bash
 # Check service status
-sudo systemctl status udp-echo.service
+sudo systemctl status target-udp-echo.service
 sudo systemctl status target-exposer.service
-
 
 # Restart services if needed
 sudo systemctl restart target-exposer.service
-sudo systemctl restart udp-echo.service
+sudo systemctl restart target-udp-echo.service
 
 # Inspect logs
 journalctl -f -u target-exposer.service -n 50
-journalctl -f -u udp-echo.service -n 50
+journalctl -f -u target-udp-echo.service -n 50
 
 # Validate health endpoint
 curl -v http://$TARGET_EXTERNAL_IP:9999/_/health
 # {
-#   "timestamp": "2025-12-30T14:30:00.123456Z",
+#   "timestamp": "2025-12-30T14:30:00.812Z",
 #   "timezone": "UTC"
 # }
 ```
@@ -112,3 +127,20 @@ curl -v http://$TARGET_EXTERNAL_IP:9999/_/health
 Run the experiment for a specified duration (e.g., 1-2 days) and collect latency data via the probe-agent's HTTP endpoint.
 
 After the experiment finishes, write the results and generate a report.
+
+### Step 6: Tear down resources
+
+When the experiment is completed, terminate the instances and clean up resources.
+
+```bash
+terraform destroy
+```
+
+Logout account:
+
+```bash
+gcloud auth application-default logout
+gcloud config unset project
+gcloud config unset account
+gcloud config unset compute/zone
+```

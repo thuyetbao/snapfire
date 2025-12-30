@@ -223,6 +223,7 @@ async def fetchLatencyMetrics(
         pl.when(pl.count() == 0)
             .then(None)
             .otherwise((pl.col("is_success").sum() / pl.count()).mul(100))
+            .cast(pl.Float64)
             .alias("success_rate"),
         pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.01).alias("p1_duration_ms"),
         pl.col("duration_ms").filter(pl.col("is_success")).quantile(0.05).alias("p5_duration_ms"),

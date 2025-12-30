@@ -1,7 +1,7 @@
 <div align="center">
   <img src="docs/assets/images/project-banner.png" alt="Project-Banner" />
   <h3>Snapfire</h3>
-  <p>Server-to-Server Latency Observability Project</p>
+  <p>Server-to-Server latency observability project</p>
 
   <a href="https://github.com/thuyetbao/snapfire">
     <img src="https://img.shields.io/badge/project--snapfire-0.6.31-darkblue?logo=fantom&logoColor=white" alt="Project">
@@ -48,6 +48,18 @@
 The project has been document at folder [docs](docs/)
 and live at [endpoint documentation (local)][endpoint-origin-url-documentation]
 
+**Code Storage**:
+
+Repository: [GitHub > Repository::`snapfire`][github-project-origin-url]
+
+**Releases**:
+
+Releases: [GitHub > Repository::`snapfire` > Releases][github-project-releease-url]
+
+**Contributors**:
+
+- Thuyet Bao [trthuyetbao@gmail.com](mailto:trthuyetbao@gmail.com) [Author]
+
 **Disclaimer:**
 
 This project used AI tools for code pairing, base generation, and documentation support.
@@ -58,4 +70,6 @@ The author remains fully responsible for all technical decisions and outcomes.
 
 <!-- Bundle URL -->
 
+[github-project-origin-url]: https://github.com/thuyetbao/snapfire.git
+[github-project-releease-url]: https://github.com/thuyetbao/snapfire.git/-/releases
 [endpoint-origin-url-documentation]: http://localhost:7777
